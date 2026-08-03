@@ -1,0 +1,368 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../prisma/generated"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── ENUMS ─────────────────────────
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  RAW
+}
+
+enum PageKey {
+  HOME
+  ABOUT
+  SERVICES
+  CONTACT
+  GLOBAL
+}
+
+enum ContactStatus {
+  NEW
+  READ
+  ARCHIVED
+  SPAM
+}
+
+// ───────────────────────── AUTH ─────────────────────────
+model User {
+  id                 String    @id
+  name               String
+  email              String    @unique
+  emailVerified      Boolean   @default(false)
+  image              String?
+  mustChangePassword Boolean   @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  sessions  Session[]
+  accounts  Account[]
+  articles  Article[]    @relation("ArticleAuthorUser")
+  news      News[]       @relation("NewsAuthorUser")
+  uploads   MediaAsset[]
+  auditLogs AuditLog[]
+}
+
+model Session {
+  id        String   @id
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Account {
+  id         String   @id
+  accountId  String
+  providerId String
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  password   String? // hash scrypt/argon2 géré par Better Auth
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+// ───────────────────────── MÉDIAS ─────────────────────────
+model MediaAsset {
+  id               String    @id @default(cuid())
+  publicId         String    @unique // Cloudinary public_id
+  type             MediaType
+  format           String // jpg, webp, mp4…
+  url              String // secure_url
+  width            Int?
+  height           Int?
+  duration         Float? // vidéos, en secondes
+  bytes            Int
+  blurDataUrl      String?   @db.Text // LQIP base64 pour next/image
+  alt              String? // obligatoire (app) pour les IMAGE
+  caption          String?
+  folder           String    @default("geoexplorer")
+  originalFilename String?
+  uploadedById     String?
+  uploadedBy       User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime  @default(now())
+
+  articleCovers Article[]   @relation("ArticleCover")
+  newsCovers    News[]      @relation("NewsCover")
+  authorPhotos  Author[]    @relation("AuthorPhoto")
+  serviceHeroes Service[]   @relation("ServiceHero")
+  partnerLogos  Partner[]   @relation("PartnerLogo")
+  newsGalleries NewsMedia[]
+
+  @@index([type, createdAt(sort: Desc)])
+}
+
+// ───────────────────────── AUTEURS ─────────────────────────
+model Author {
+  id        String      @id @default(cuid())
+  slug      String      @unique
+  name      String
+  title     String? // « Géologue senior », « Ingénieur des mines »
+  bio       String?     @db.Text
+  email     String?
+  linkedin  String?
+  photoId   String?
+  photo     MediaAsset? @relation("AuthorPhoto", fields: [photoId], references: [id], onDelete: SetNull)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  articles ArticleAuthor[]
+}
+
+// ───────────────────────── ARTICLES ─────────────────────────
+model Article {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  title       String
+  subtitle    String?
+  excerpt     String?       @db.VarChar(320)
+  contentJson Json // source de vérité (Tiptap)
+  contentHtml String        @db.Text // pré-rendu + sanitizé à l'écriture
+  plainText   String        @db.Text // recherche + extrait auto
+  readingTime Int           @default(0) // minutes
+  status      PublishStatus @default(DRAFT)
+  publishedAt DateTime?
+  featured    Boolean       @default(false)
+  viewCount   Int           @default(0)
+
+  coverId  String?
+  cover    MediaAsset? @relation("ArticleCover", fields: [coverId], references: [id], onDelete: SetNull)
+  pdfUrl   String? // PDF téléchargeable de l'étude
+  pdfBytes Int?
+
+  metaTitle       String?
+  metaDescription String? @db.VarChar(320)
+
+  createdById String?
+  createdBy   User?    @relation("ArticleAuthorUser", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  authors ArticleAuthor[]
+  tags    ArticleTag[]
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([featured, publishedAt(sort: Desc)])
+}
+
+model ArticleAuthor {
+  articleId String
+  authorId  String
+  position  Int     @default(0)
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author    Author  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, authorId])
+  @@index([authorId])
+}
+
+model Tag {
+  id       String       @id @default(cuid())
+  slug     String       @unique
+  name     String       @unique
+  articles ArticleTag[]
+}
+
+model ArticleTag {
+  articleId String
+  tagId     String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@index([tagId])
+}
+
+// ───────────────────────── ACTUALITÉS ─────────────────────────
+model News {
+  id               String        @id @default(cuid())
+  slug             String        @unique
+  title            String
+  excerpt          String?       @db.VarChar(320)
+  contentJson      Json
+  contentHtml      String        @db.Text
+  plainText        String        @db.Text
+  status           PublishStatus @default(DRAFT)
+  publishedAt      DateTime?
+  eventDate        DateTime? // date de l'événement si différente
+  location         String? // « Nouakchott », « Zouerate »
+  externalVideoUrl String? // YouTube/Vimeo (économie de crédits)
+
+  coverId String?
+  cover   MediaAsset? @relation("NewsCover", fields: [coverId], references: [id], onDelete: SetNull)
+
+  metaTitle       String?
+  metaDescription String? @db.VarChar(320)
+
+  createdById String?
+  createdBy   User?    @relation("NewsAuthorUser", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  media NewsMedia[]
+
+  @@index([status, publishedAt(sort: Desc)])
+}
+
+model NewsMedia {
+  id       String     @id @default(cuid())
+  newsId   String
+  mediaId  String
+  position Int        @default(0)
+  caption  String?
+  news     News       @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  media    MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([newsId, mediaId])
+  @@index([newsId, position])
+}
+
+// ───────────────────────── SERVICES ─────────────────────────
+model Service {
+  id              String      @id @default(cuid())
+  slug            String      @unique
+  title           String // « Géologie et exploration minière »
+  tagline         String? // phrase en italique de la plaquette
+  summary         String?     @db.Text // texte affiché sur l'accueil
+  icon            String? // nom d'icône lucide
+  order           Int         @default(0)
+  published       Boolean     @default(true)
+  heroId          String?
+  hero            MediaAsset? @relation("ServiceHero", fields: [heroId], references: [id], onDelete: SetNull)
+  metaTitle       String?
+  metaDescription String?     @db.VarChar(320)
+  updatedAt       DateTime    @updatedAt
+  createdAt       DateTime    @default(now())
+
+  blocks ServiceBlock[]
+
+  @@index([published, order])
+}
+
+model ServiceBlock {
+  id        String   @id @default(cuid())
+  serviceId String
+  title     String // « Planification et terrain »
+  items     String[] // les puces
+  order     Int      @default(0)
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, order])
+}
+
+// ───────────────────────── PARTENAIRES ─────────────────────────
+model Partner {
+  id         String      @id @default(cuid())
+  slug       String      @unique
+  name       String
+  websiteUrl String?
+  category   String? // « Public », « Privé », « Académique »
+  order      Int         @default(0)
+  published  Boolean     @default(true)
+  logoId     String?
+  logo       MediaAsset? @relation("PartnerLogo", fields: [logoId], references: [id], onDelete: SetNull)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([published, order])
+}
+
+// ───────────────────── CONTENU DE PAGES ─────────────────────
+model PageSection {
+  id          String   @id @default(cuid())
+  page        PageKey
+  key         String // "hero", "values", "whoWeAre", "mission"…
+  data        Json // validé par un schéma Zod dédié à `key`
+  order       Int      @default(0)
+  published   Boolean  @default(true)
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  @@unique([page, key])
+  @@index([page, order])
+}
+
+model SiteSetting {
+  id                Int      @id @default(1)
+  companyName       String   @default("GeoExplorer Services")
+  tagline           String?
+  address           String?
+  phones            String[]
+  email             String?
+  siteUrl           String?
+  contactRecipients String[] // destinataires du formulaire
+  mapEmbedUrl       String?
+  linkedin          String?
+  facebook          String?
+  defaultOgImage    String?
+  analyticsId       String?
+  updatedAt         DateTime @updatedAt
+}
+
+// ───────────────────────── CONTACT ─────────────────────────
+model ContactMessage {
+  id          String        @id @default(cuid())
+  name        String
+  company     String?
+  email       String
+  phone       String?
+  projectType String?
+  message     String        @db.Text
+  status      ContactStatus @default(NEW)
+  ipHash      String? // haché, pas d'IP en clair
+  userAgent   String?
+  emailSent   Boolean       @default(false)
+  emailError  String?
+  createdAt   DateTime      @default(now())
+
+  @@index([status, createdAt(sort: Desc)])
+}
+
+// ───────────────────────── AUDIT ─────────────────────────
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String // "article.publish", "service.update"
+  entity    String
+  entityId  String?
+  diff      Json?
+  ipHash    String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt(sort: Desc)])
+}
