@@ -7,11 +7,12 @@ import { requireSession } from "@/server/actions/_guard";
 import { logAudit } from "@/server/services/audit";
 import { db } from "@/server/db";
 import { AppError, runAction, type ActionResult } from "@/lib/errors";
+import { passwordSchema } from "@/lib/validation/password";
 
 const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, "Mot de passe actuel requis."),
-    newPassword: z.string().min(12, "12 caractères minimum."),
+    newPassword: passwordSchema,
     confirmPassword: z.string().min(1, "Confirmation requise."),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {

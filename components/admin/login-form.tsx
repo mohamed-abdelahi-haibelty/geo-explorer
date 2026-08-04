@@ -6,6 +6,7 @@ import { login } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function LoginForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useActionState(login, null);
@@ -37,10 +38,9 @@ export function LoginForm({ next }: { next?: string }) {
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="password">Mot de passe</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
           required
           aria-invalid={hasError || undefined}
