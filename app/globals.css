@@ -173,4 +173,19 @@
   h6 {
     @apply font-heading;
   }
+
+  /*
+   * Browser autofill paints its own background over form fields, ignoring
+   * component styles; without this override a saved-credential login (the
+   * most common real-world path) shows a yellow/blue swatch that clashes
+   * with the white "ground" the rest of the system commits to.
+   */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    box-shadow: 0 0 0 1000px var(--color-background) inset;
+    -webkit-text-fill-color: var(--color-foreground);
+    caret-color: var(--color-foreground);
+    transition: background-color 5000s ease-in-out 0s;
+  }
 }

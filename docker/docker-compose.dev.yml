@@ -14,5 +14,26 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-geoexplorer}"]
       interval: 10s
 
+  # Local stand-in for Upstash Redis: a plain Redis behind an HTTP proxy that
+  # speaks the same REST protocol @upstash/redis expects, so ratelimit.ts
+  # works against localhost without a real Upstash project in dev.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  redis-http:
+    image: hiett/serverless-redis-http:latest
+    restart: unless-stopped
+    ports:
+      - "8079:80"
+    environment:
+      SRH_MODE: env
+      SRH_TOKEN: dev-token
+      SRH_CONNECTION_STRING: "redis://redis:6379"
+    depends_on:
+      - redis
+
 volumes:
   pgdata:
