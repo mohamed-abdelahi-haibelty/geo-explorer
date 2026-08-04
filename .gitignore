@@ -47,3 +47,6 @@ next-env.d.ts
 context
 .agents
 .claude
+.impeccable
+/DESIGN.md
+/PRODUCT.md
