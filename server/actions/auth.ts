@@ -58,7 +58,9 @@ export async function login(
   let mustChangePassword: boolean;
   try {
     const result = await auth.api.signInEmail({ body: { email, password: parsed.data.password } });
-    mustChangePassword = result.user.mustChangePassword;
+    // Better Auth's additionalFields typing widened to include null/undefined;
+    // the schema's own defaultValue is true, so an unset flag forces the change.
+    mustChangePassword = result.user.mustChangePassword ?? true;
   } catch {
     return { ok: false, code: "UNAUTHENTICATED", message: UNIFORM_ERROR };
   }
