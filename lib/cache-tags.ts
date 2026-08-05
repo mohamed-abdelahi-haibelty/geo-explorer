@@ -9,6 +9,7 @@ export const TAGS = {
   settings: "settings",
   page: (p: string) => `page:${p}`,
   messages: "messages",
+  media: "media",
 };
 
 // Content is edited rarely and read often — see architecture-full.md §11.
