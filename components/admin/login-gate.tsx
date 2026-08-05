@@ -22,7 +22,7 @@ export async function LoginGate({
     <LoginReveal className="flex min-h-full flex-1 flex-col">
       <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
-          <Image src={logo} alt="" className="h-9 w-auto shrink-0" priority />
+          <Image src={logo} alt="" className="h-9 w-auto shrink-0" priority unoptimized />
           <span className="font-heading text-base font-medium text-foreground">
             GeoExplorer Services
           </span>
