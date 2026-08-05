@@ -91,13 +91,16 @@
   --chart-4: oklch(0.62 0.14 85);
   --chart-5: oklch(0.45 0.15 310);
   --radius: 0.75rem;
-  --sidebar: oklch(0.985 0.004 264);
-  --sidebar-foreground: oklch(0.19 0.015 264);
+  /* Sidebar is a flat, near-white panel (ChatGPT-style) rather than a
+     cobalt-tinted one: neutral hover/active pills instead of the brand
+     accent, a hairline border as the only seam against --background. */
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.22 0 0);
   --sidebar-primary: oklch(0.326 0.2 264.5);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.03 40);
-  --sidebar-accent-foreground: oklch(0.35 0.12 40);
-  --sidebar-border: oklch(0.9 0.01 264);
+  --sidebar-accent: oklch(0.96 0 0);
+  --sidebar-accent-foreground: oklch(0.22 0 0);
+  --sidebar-border: oklch(0.93 0 0);
   --sidebar-ring: oklch(0.625 0.194 39.8);
   /* Shadows carry a cobalt tint (the structural hue) instead of neutral
      black, plus a real offset and blur — never a flat, zero-offset glow. */
@@ -136,13 +139,13 @@
   --chart-3: oklch(0.62 0.11 195);
   --chart-4: oklch(0.7 0.13 85);
   --chart-5: oklch(0.58 0.15 310);
-  --sidebar: oklch(0.19 0.02 264);
-  --sidebar-foreground: oklch(0.96 0.005 264);
+  --sidebar: oklch(0.16 0 0);
+  --sidebar-foreground: oklch(0.92 0 0);
   --sidebar-primary: oklch(0.45 0.18 264.5);
   --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.3 0.06 40);
-  --sidebar-accent-foreground: oklch(0.92 0.03 40);
-  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-accent: oklch(0.26 0 0);
+  --sidebar-accent-foreground: oklch(0.92 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.68 0.19 39.8);
   --shadow-xs-value: 0 1px 2px 0 oklch(0 0 0 / 0.2);
   --shadow-sm-value: 0 1px 3px 0 oklch(0 0 0 / 0.24),
