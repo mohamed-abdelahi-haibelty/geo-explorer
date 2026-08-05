@@ -13,11 +13,15 @@ language is French.
 - [Prisma 7](https://www.prisma.io) + PostgreSQL 16
 - Tailwind CSS 4 + shadcn/ui
 - Better Auth (admin login) + Upstash Ratelimit (login rate limiting)
+- Cloudinary (media storage, delivery, and image transforms)
 - Zod-validated environment config
 
 ## Getting Started
 
-1. Copy the env template and fill in real values:
+1. Copy the env template and fill in real values, including a real
+   Cloudinary account (`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`,
+   `CLOUDINARY_API_SECRET`, `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`) — the media
+   library won't accept uploads without one:
 
    ```bash
    cp .env.example .env
@@ -59,6 +63,7 @@ back-office.
 - `app/(admin)/admin/` — admin back-office routes
 - `app/login/` — admin sign-in page
 - `app/api/auth/` — Better Auth handler
+- `app/api/cloudinary/` — signed upload endpoint for the media library
 - `components/` — UI components (shadcn/ui-based)
 - `server/` — env validation, Prisma client singleton, auth config, actions, queries
 - `lib/` — shared utilities (cache tags, etc.)
