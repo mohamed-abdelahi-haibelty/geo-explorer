@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient, PageKey, Prisma } from "./generated/client";
+import { PrismaClient, PageKey, Locale, Prisma } from "./generated/client";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaClient({ adapter });
@@ -345,13 +345,18 @@ const pageSections: {
   },
 ];
 
+// Seed content is French — every row becomes the FR row, matching how the
+// existing-data migration treated Article/News/Service (Task 04a). EN/AR
+// content is a translation task for the client, not something to fabricate
+// here (see content-source.md).
 async function seedPageSections() {
   for (const section of pageSections) {
     await db.pageSection.upsert({
-      where: { page_key: { page: section.page, key: section.key } },
+      where: { page_key_locale: { page: section.page, key: section.key, locale: Locale.FR } },
       create: {
         page: section.page,
         key: section.key,
+        locale: Locale.FR,
         order: section.order,
         data: section.data,
       },
@@ -576,21 +581,20 @@ async function seedServices() {
   for (const service of services) {
     const record = await db.service.upsert({
       where: { slug: service.slug },
+      create: { slug: service.slug, order: service.order, icon: service.icon },
+      update: { order: service.order, icon: service.icon },
+    });
+
+    await db.serviceTranslation.upsert({
+      where: { serviceId_locale: { serviceId: record.id, locale: Locale.FR } },
       create: {
-        slug: service.slug,
-        order: service.order,
+        serviceId: record.id,
+        locale: Locale.FR,
         title: service.title,
         tagline: service.tagline,
         summary: service.summary,
-        icon: service.icon,
       },
-      update: {
-        order: service.order,
-        title: service.title,
-        tagline: service.tagline,
-        summary: service.summary,
-        icon: service.icon,
-      },
+      update: { title: service.title, tagline: service.tagline, summary: service.summary },
     });
 
     // No stable natural key on ServiceBlock: replace the set on every run.

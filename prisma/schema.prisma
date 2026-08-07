@@ -36,6 +36,12 @@ enum ContactStatus {
   SPAM
 }
 
+enum Locale {
+  FR
+  EN
+  AR
+}
+
 // ───────────────────────── AUTH ─────────────────────────
 model User {
   id                 String    @id
@@ -107,8 +113,8 @@ model MediaAsset {
   duration         Float? // vidéos, en secondes
   bytes            Int
   blurDataUrl      String?   @db.Text // LQIP base64 pour next/image
-  alt              String? // obligatoire (app) pour les IMAGE
-  caption          String?
+  alt              Json? // LocalizedText ({fr,en?,ar?}) — obligatoire (app) pour les IMAGE
+  caption          Json? // LocalizedText ({fr,en?,ar?})
   folder           String    @default("geoexplorer")
   originalFilename String?
   uploadedById     String?
@@ -129,9 +135,9 @@ model MediaAsset {
 model Author {
   id        String      @id @default(cuid())
   slug      String      @unique
-  name      String
-  title     String? // « Géologue senior », « Ingénieur des mines »
-  bio       String?     @db.Text
+  name      String // not translated — proper noun
+  title     Json? // LocalizedText ({fr,en?,ar?}) — « Géologue senior »…
+  bio       Json? // LocalizedText ({fr,en?,ar?})
   email     String?
   linkedin  String?
   photoId   String?
@@ -143,9 +149,41 @@ model Author {
 }
 
 // ───────────────────────── ARTICLES ─────────────────────────
+// Locale-independent: cover, PDF, authors, tags, featured, viewCount.
+// Everything translatable lives on ArticleTranslation — see below.
+// `updatedAt` here is "any-locale last-touched" bookkeeping only (bumped
+// alongside every translation write, in the same transaction), used for the
+// admin list's sort order — it is NOT the optimistic-concurrency field
+// (that's ArticleTranslation.updatedAt, see server/actions/articles.ts).
 model Article {
+  id        String   @id @default(cuid())
+  featured  Boolean  @default(false)
+  viewCount Int      @default(0)
+
+  coverId  String?
+  cover    MediaAsset? @relation("ArticleCover", fields: [coverId], references: [id], onDelete: SetNull)
+  pdfUrl   String? // PDF téléchargeable de l'étude
+  pdfBytes Int?
+
+  createdById String?
+  createdBy   User?    @relation("ArticleAuthorUser", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  translations ArticleTranslation[]
+  authors      ArticleAuthor[]
+  tags         ArticleTag[]
+}
+
+// Each translation is an independent publication: its own status,
+// publishedAt and slug. A missing translation is not a fallback candidate —
+// see architecture.md's locale invariants.
+model ArticleTranslation {
   id          String        @id @default(cuid())
-  slug        String        @unique
+  articleId   String
+  article     Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  locale      Locale
+  slug        String
   title       String
   subtitle    String?
   excerpt     String?       @db.VarChar(320)
@@ -155,27 +193,16 @@ model Article {
   readingTime Int           @default(0) // minutes
   status      PublishStatus @default(DRAFT)
   publishedAt DateTime?
-  featured    Boolean       @default(false)
-  viewCount   Int           @default(0)
-
-  coverId  String?
-  cover    MediaAsset? @relation("ArticleCover", fields: [coverId], references: [id], onDelete: SetNull)
-  pdfUrl   String? // PDF téléchargeable de l'étude
-  pdfBytes Int?
 
   metaTitle       String?
   metaDescription String? @db.VarChar(320)
 
-  createdById String?
-  createdBy   User?    @relation("ArticleAuthorUser", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  authors ArticleAuthor[]
-  tags    ArticleTag[]
-
-  @@index([status, publishedAt(sort: Desc)])
-  @@index([featured, publishedAt(sort: Desc)])
+  @@unique([articleId, locale])
+  @@unique([locale, slug])
+  @@index([locale, status, publishedAt(sort: Desc)])
 }
 
 model ArticleAuthor {
@@ -191,8 +218,8 @@ model ArticleAuthor {
 
 model Tag {
   id       String       @id @default(cuid())
-  slug     String       @unique
-  name     String       @unique
+  slug     String       @unique // the real identity — name is display-only
+  name     Json // LocalizedText ({fr,en?,ar?}) — admin always writes fr
   articles ArticleTag[]
 }
 
@@ -207,16 +234,10 @@ model ArticleTag {
 }
 
 // ───────────────────────── ACTUALITÉS ─────────────────────────
+// Locale-independent: cover, event date/location/video, media gallery.
+// `updatedAt` is bookkeeping only — see the identical note on Article.
 model News {
-  id               String        @id @default(cuid())
-  slug             String        @unique
-  title            String
-  excerpt          String?       @db.VarChar(320)
-  contentJson      Json
-  contentHtml      String        @db.Text
-  plainText        String        @db.Text
-  status           PublishStatus @default(DRAFT)
-  publishedAt      DateTime?
+  id               String    @id @default(cuid())
   eventDate        DateTime? // date de l'événement si différente
   location         String? // « Nouakchott », « Zouerate »
   externalVideoUrl String? // YouTube/Vimeo (économie de crédits)
@@ -224,17 +245,39 @@ model News {
   coverId String?
   cover   MediaAsset? @relation("NewsCover", fields: [coverId], references: [id], onDelete: SetNull)
 
-  metaTitle       String?
-  metaDescription String? @db.VarChar(320)
-
   createdById String?
   createdBy   User?    @relation("NewsAuthorUser", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  media NewsMedia[]
+  translations NewsTranslation[]
+  media        NewsMedia[]
+}
 
-  @@index([status, publishedAt(sort: Desc)])
+// Independent publication per locale — same rule as ArticleTranslation.
+model NewsTranslation {
+  id          String        @id @default(cuid())
+  newsId      String
+  news        News          @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  locale      Locale
+  slug        String
+  title       String
+  excerpt     String?       @db.VarChar(320)
+  contentJson Json
+  contentHtml String        @db.Text
+  plainText   String        @db.Text
+  status      PublishStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  metaTitle       String?
+  metaDescription String? @db.VarChar(320)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([newsId, locale])
+  @@unique([locale, slug])
+  @@index([locale, status, publishedAt(sort: Desc)])
 }
 
 model NewsMedia {
@@ -251,25 +294,40 @@ model NewsMedia {
 }
 
 // ───────────────────────── SERVICES ─────────────────────────
+// Structural, not a publication: slug/published/order stay on the parent
+// (must exist in all three locales — missing translation falls back to FR
+// + noindex, see lib/locale.ts's resolveStructural, not the independent-
+// publication rule ArticleTranslation/NewsTranslation follow).
 model Service {
-  id              String      @id @default(cuid())
-  slug            String      @unique
-  title           String // « Géologie et exploration minière »
-  tagline         String? // phrase en italique de la plaquette
-  summary         String?     @db.Text // texte affiché sur l'accueil
-  icon            String? // nom d'icône lucide
-  order           Int         @default(0)
-  published       Boolean     @default(true)
-  heroId          String?
-  hero            MediaAsset? @relation("ServiceHero", fields: [heroId], references: [id], onDelete: SetNull)
-  metaTitle       String?
-  metaDescription String?     @db.VarChar(320)
-  updatedAt       DateTime    @updatedAt
-  createdAt       DateTime    @default(now())
+  id        String      @id @default(cuid())
+  slug      String      @unique
+  icon      String? // nom d'icône lucide
+  order     Int         @default(0)
+  published Boolean     @default(true)
+  heroId    String?
+  hero      MediaAsset? @relation("ServiceHero", fields: [heroId], references: [id], onDelete: SetNull)
+  updatedAt DateTime    @updatedAt
+  createdAt DateTime    @default(now())
 
-  blocks ServiceBlock[]
+  translations ServiceTranslation[]
+  blocks       ServiceBlock[]
 
   @@index([published, order])
+}
+
+model ServiceTranslation {
+  id              String   @id @default(cuid())
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  locale          Locale
+  title           String // « Géologie et exploration minière »
+  tagline         String? // phrase en italique de la plaquette
+  summary         String?  @db.Text // texte affiché sur l'accueil
+  metaTitle       String?
+  metaDescription String?  @db.VarChar(320)
+  updatedAt       DateTime @updatedAt
+
+  @@unique([serviceId, locale])
 }
 
 model ServiceBlock {
@@ -287,9 +345,9 @@ model ServiceBlock {
 model Partner {
   id         String      @id @default(cuid())
   slug       String      @unique
-  name       String
+  name       String // not translated — proper noun
   websiteUrl String?
-  category   String? // « Public », « Privé », « Académique »
+  category   Json? // LocalizedText ({fr,en?,ar?}) — « Public », « Privé »…
   order      Int         @default(0)
   published  Boolean     @default(true)
   logoId     String?
@@ -305,13 +363,14 @@ model PageSection {
   id          String   @id @default(cuid())
   page        PageKey
   key         String // "hero", "values", "whoWeAre", "mission"…
+  locale      Locale   @default(FR)
   data        Json // validé par un schéma Zod dédié à `key`
   order       Int      @default(0)
   published   Boolean  @default(true)
   updatedById String?
   updatedAt   DateTime @updatedAt
 
-  @@unique([page, key])
+  @@unique([page, key, locale])
   @@index([page, order])
 }
 
