@@ -1,5 +1,7 @@
 "use client";
 
+import { cloudinaryImageUrl } from "@/lib/cloudinary-url";
+
 // next.config.ts wires this in as images.loaderFile. `src` is a Cloudinary
 // publicId (never a full URL) — see components/media/cld-image.tsx.
 export default function cloudinaryImageLoader({
@@ -11,7 +13,5 @@ export default function cloudinaryImageLoader({
   width: number;
   quality?: number;
 }) {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const params = ["f_auto", "dpr_auto", "c_limit", `w_${width}`, `q_${quality ?? "auto"}`];
-  return `https://res.cloudinary.com/${cloudName}/image/upload/${params.join(",")}/${src}`;
+  return cloudinaryImageUrl(src, { width, quality });
 }
