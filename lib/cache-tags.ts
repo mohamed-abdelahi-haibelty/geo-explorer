@@ -1,13 +1,24 @@
+import type { LocaleCode } from "@/lib/validation/locale";
+
+// `articles`/`news`/`services`/`page` (flat) cover the admin's all-locale
+// views; the `*List`/`article`/`newsItem`/`service`/`page` locale-scoped
+// variants cover the public surface. Every translation write invalidates
+// both — the flat tag so the admin always sees its own write, the
+// locale-scoped tag(s) so publishing e.g. the Arabic translation never
+// invalidates the French page's cache (Task 04a step 9).
 export const TAGS = {
   articles: "articles",
-  article: (s: string) => `article:${s}`,
+  articleList: (locale: LocaleCode) => `articles:${locale}`,
+  article: (locale: LocaleCode, slug: string) => `article:${locale}:${slug}`,
+  authors: "authors",
   news: "news",
-  newsItem: (s: string) => `news:${s}`,
+  newsList: (locale: LocaleCode) => `news:${locale}`,
+  newsItem: (locale: LocaleCode, slug: string) => `news:${locale}:${slug}`,
   services: "services",
-  service: (s: string) => `service:${s}`,
+  service: (locale: LocaleCode, slug: string) => `service:${locale}:${slug}`,
   partners: "partners",
   settings: "settings",
-  page: (p: string) => `page:${p}`,
+  page: (locale: LocaleCode, key: string) => `page:${locale}:${key}`,
   messages: "messages",
   media: "media",
 };

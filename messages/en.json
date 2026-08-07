@@ -1,0 +1,41 @@
+{
+  "nav": {
+    "home": "Home",
+    "articles": "Articles",
+    "services": "Services",
+    "about": "About",
+    "contact": "Contact",
+    "search": "Search"
+  },
+  "languageSwitcher": {
+    "label": "Language",
+    "fr": "Français",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "article": {
+    "readingTime": "{minutes} min read",
+    "publishedOn": "Published on {date}",
+    "byAuthor": "By {name}",
+    "tags": "Tags",
+    "notAvailableNotice": "This article isn't available in this language."
+  },
+  "articleIndex": {
+    "title": "Articles",
+    "empty": "No articles yet.",
+    "loadMore": "Load more articles"
+  },
+  "search": {
+    "placeholder": "Search articles…",
+    "resultsFor": "Results for “{query}”",
+    "empty": "No results."
+  },
+  "footer": {
+    "rights": "All rights reserved."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The requested content doesn't exist or is no longer available.",
+    "backHome": "Back to home"
+  }
+}

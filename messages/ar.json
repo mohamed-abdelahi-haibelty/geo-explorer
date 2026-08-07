@@ -1,0 +1,41 @@
+{
+  "nav": {
+    "home": "الرئيسية",
+    "articles": "المقالات",
+    "services": "الخدمات",
+    "about": "من نحن",
+    "contact": "اتصل بنا",
+    "search": "بحث"
+  },
+  "languageSwitcher": {
+    "label": "اللغة",
+    "fr": "Français",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "article": {
+    "readingTime": "{minutes} دقيقة قراءة",
+    "publishedOn": "نُشر في {date}",
+    "byAuthor": "بقلم {name}",
+    "tags": "الوسوم",
+    "notAvailableNotice": "هذا المقال غير متوفر بهذه اللغة."
+  },
+  "articleIndex": {
+    "title": "المقالات",
+    "empty": "لا توجد مقالات بعد.",
+    "loadMore": "عرض المزيد من المقالات"
+  },
+  "search": {
+    "placeholder": "ابحث عن مقال…",
+    "resultsFor": "نتائج البحث عن «{query}»",
+    "empty": "لا توجد نتائج."
+  },
+  "footer": {
+    "rights": "جميع الحقوق محفوظة."
+  },
+  "notFound": {
+    "title": "الصفحة غير موجودة",
+    "description": "المحتوى المطلوب غير موجود أو لم يعد متاحًا.",
+    "backHome": "العودة إلى الرئيسية"
+  }
+}

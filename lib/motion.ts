@@ -1,6 +1,6 @@
 /**
  * Motion vocabulary for the spectral/remote-sensing direction (see the
- * contract in app/layout.tsx and DESIGN.md). Mirrors the --ease-signal /
+ * contract in lib/fonts.ts and DESIGN.md). Mirrors the --ease-signal /
  * --shadow-* tokens in app/globals.css so CSS-only and GSAP-driven motion
  * stay on one timing system.
  */
