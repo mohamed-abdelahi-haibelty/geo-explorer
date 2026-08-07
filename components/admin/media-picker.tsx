@@ -18,6 +18,7 @@ import { MediaUploadQueue } from "@/components/admin/media-upload-queue";
 import { CldImage } from "@/components/media/cld-image";
 import { searchMediaAction } from "@/server/actions/media";
 import { cn } from "@/lib/utils";
+import { pickLocalizedText } from "@/lib/locale";
 import type { MediaAsset, MediaType } from "@/prisma/generated/client";
 
 const TYPE_OPTIONS = [
@@ -204,7 +205,7 @@ export function MediaPicker({
                       {asset.type === "IMAGE" ? (
                         <CldImage
                           publicId={asset.publicId}
-                          alt={asset.alt ?? ""}
+                          alt={pickLocalizedText(asset.alt, "fr")}
                           fill
                           sizes="160px"
                           blurDataUrl={asset.blurDataUrl}

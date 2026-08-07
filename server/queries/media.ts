@@ -9,13 +9,17 @@ export async function listMedia({ type, search, page }: { type?: MediaType; sear
   cacheLife(CACHE_PROFILE);
   cacheTag(TAGS.media);
 
+  // `alt` is locale-keyed JSON now (Task 04a) — Prisma's plain `contains`
+  // string filter doesn't apply to Json columns; `string_contains` with an
+  // explicit path does. Searches the French value only (the admin's working
+  // language — see architecture.md's storage-strategy table).
   const where = {
     ...(type ? { type } : {}),
     ...(search
       ? {
           OR: [
             { originalFilename: { contains: search, mode: "insensitive" as const } },
-            { alt: { contains: search, mode: "insensitive" as const } },
+            { alt: { path: ["fr"], string_contains: search } },
           ],
         }
       : {}),
@@ -44,22 +48,32 @@ export async function getMediaUsage(id: string): Promise<MediaUsageItem[]> {
   cacheLife(CACHE_PROFILE);
   cacheTag(TAGS.media);
 
+  // Title now lives on the translation row — the FR one stands in as the
+  // admin-facing label (admin works in French; see architecture.md's
+  // storage-strategy table), falling back to whichever locale exists if FR
+  // was never written (e.g. an EN-only draft).
+  const FR_TITLE = { translations: { select: { locale: true, title: true } } } as const;
+
+  function bestTitle(translations: { locale: string; title: string }[]): string {
+    return translations.find((t) => t.locale === "FR")?.title ?? translations[0]?.title ?? "(sans titre)";
+  }
+
   const [articles, news, authors, services, partners, galleries] = await Promise.all([
-    db.article.findMany({ where: { coverId: id }, select: { title: true } }),
-    db.news.findMany({ where: { coverId: id }, select: { title: true } }),
+    db.article.findMany({ where: { coverId: id }, select: FR_TITLE }),
+    db.news.findMany({ where: { coverId: id }, select: FR_TITLE }),
     db.author.findMany({ where: { photoId: id }, select: { name: true } }),
-    db.service.findMany({ where: { heroId: id }, select: { title: true } }),
+    db.service.findMany({ where: { heroId: id }, select: { translations: { select: { locale: true, title: true } } } }),
     db.partner.findMany({ where: { logoId: id }, select: { name: true } }),
-    db.newsMedia.findMany({ where: { mediaId: id }, select: { news: { select: { title: true } } } }),
+    db.newsMedia.findMany({ where: { mediaId: id }, select: { news: { select: FR_TITLE } } }),
   ]);
 
   return [
-    ...articles.map((item) => ({ kind: "article" as const, label: item.title })),
-    ...news.map((item) => ({ kind: "news" as const, label: item.title })),
+    ...articles.map((item) => ({ kind: "article" as const, label: bestTitle(item.translations) })),
+    ...news.map((item) => ({ kind: "news" as const, label: bestTitle(item.translations) })),
     ...authors.map((item) => ({ kind: "author" as const, label: item.name })),
-    ...services.map((item) => ({ kind: "service" as const, label: item.title })),
+    ...services.map((item) => ({ kind: "service" as const, label: bestTitle(item.translations) })),
     ...partners.map((item) => ({ kind: "partner" as const, label: item.name })),
-    ...galleries.map((item) => ({ kind: "gallery" as const, label: item.news.title })),
+    ...galleries.map((item) => ({ kind: "gallery" as const, label: bestTitle(item.news.translations) })),
   ];
 }
 

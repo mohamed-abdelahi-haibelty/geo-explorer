@@ -17,7 +17,17 @@ import {
   updateMediaAssetSchema,
 } from "@/lib/validation/media";
 import { getMediaUsage, getMediaUsageBatch, listMedia, type MediaUsageItem } from "@/server/queries/media";
+import { Prisma } from "@/prisma/generated/client";
 import type { MediaAsset } from "@/prisma/generated/client";
+
+// alt/caption are locale-keyed JSON (Task 04a), but the media library's
+// upload/edit form is still a single field — out of scope for the tab
+// rework Task 04a applies to article-form.tsx. The single value the admin
+// types becomes the French value, consistent with how Tag/Author labels are
+// written from single-input admin forms elsewhere.
+function toLocalizedJson(value: string | null | undefined) {
+  return value ? { fr: value } : Prisma.DbNull;
+}
 
 export async function saveMediaAsset(input: unknown): Promise<ActionResult<MediaAsset>> {
   return runAction(async () => {
@@ -57,8 +67,8 @@ export async function saveMediaAsset(input: unknown): Promise<ActionResult<Media
         duration: data.duration,
         bytes: data.bytes,
         blurDataUrl,
-        alt: data.alt || null,
-        caption: data.caption || null,
+        alt: toLocalizedJson(data.alt),
+        caption: toLocalizedJson(data.caption),
         folder: data.folder,
         originalFilename: data.originalFilename,
         uploadedById: user.id,
@@ -97,7 +107,7 @@ export async function updateMediaAsset(
 
     await db.mediaAsset.update({
       where: { id: parsed.data.id },
-      data: { alt: parsed.data.alt || null, caption: parsed.data.caption || null },
+      data: { alt: toLocalizedJson(parsed.data.alt), caption: toLocalizedJson(parsed.data.caption) },
     });
 
     updateTag(TAGS.media);

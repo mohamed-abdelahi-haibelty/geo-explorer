@@ -12,9 +12,16 @@ import { MediaDeleteDialog } from "@/components/admin/media-delete-dialog";
 import { CldImage } from "@/components/media/cld-image";
 import { formatBytes } from "@/lib/media-client";
 import { cn } from "@/lib/utils";
+import { pickLocalizedText } from "@/lib/locale";
 import type { MediaAsset } from "@/prisma/generated/client";
 
 const TYPE_LABEL: Record<MediaAsset["type"], string> = { IMAGE: "Image", VIDEO: "Vidéo", RAW: "PDF" };
+
+// alt/caption are locale-keyed JSON (Task 04a); the admin's own working
+// language is French — see architecture.md's storage-strategy table.
+function frText(value: unknown): string {
+  return pickLocalizedText(value, "fr");
+}
 
 export function MediaCard({
   asset,
@@ -76,7 +83,7 @@ export function MediaCard({
         {asset.type === "IMAGE" ? (
           <CldImage
             publicId={asset.publicId}
-            alt={asset.alt ?? ""}
+            alt={frText(asset.alt)}
             fill
             sizes="(min-width: 1024px) 220px, 45vw"
             blurDataUrl={asset.blurDataUrl}
@@ -113,13 +120,13 @@ export function MediaCard({
               <Label htmlFor={`alt-${asset.id}`} className="text-xs">
                 Texte alternatif {asset.type === "IMAGE" && <span className="text-destructive">*</span>}
               </Label>
-              <Input id={`alt-${asset.id}`} name="alt" defaultValue={asset.alt ?? ""} />
+              <Input id={`alt-${asset.id}`} name="alt" defaultValue={frText(asset.alt)} />
             </div>
             <div className="flex flex-col gap-1">
               <Label htmlFor={`caption-${asset.id}`} className="text-xs">
                 Légende
               </Label>
-              <Input id={`caption-${asset.id}`} name="caption" defaultValue={asset.caption ?? ""} />
+              <Input id={`caption-${asset.id}`} name="caption" defaultValue={frText(asset.caption)} />
             </div>
             {state && !state.ok && (
               <p role="alert" className="text-xs text-destructive">
@@ -137,7 +144,7 @@ export function MediaCard({
           </form>
         ) : (
           <>
-            <p className="truncate text-xs text-muted-foreground">{asset.alt || "Sans texte alternatif"}</p>
+            <p className="truncate text-xs text-muted-foreground">{frText(asset.alt) || "Sans texte alternatif"}</p>
             <div className="flex items-center gap-1">
               <Button
                 type="button"
