@@ -7,7 +7,7 @@ import { getArticleForEdit } from "@/server/queries/articles";
 import { listAuthors } from "@/server/queries/authors";
 import { listTags } from "@/server/queries/tags";
 import { pickLocalizedText } from "@/lib/locale";
-import { bestTranslation } from "@/lib/article-display";
+import { bestTranslation } from "@/lib/translation-display";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;

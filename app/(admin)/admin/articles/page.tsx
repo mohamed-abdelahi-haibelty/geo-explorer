@@ -11,7 +11,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationNext, Paginati
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { listArticlesAdmin } from "@/server/queries/articles";
 import { listAuthors } from "@/server/queries/authors";
-import { bestTranslation } from "@/lib/article-display";
+import { bestTranslation } from "@/lib/translation-display";
 import type { Locale as PrismaLocale, PublishStatus } from "@/prisma/generated/client";
 
 export const metadata: Metadata = { title: "Articles — Back-office GeoExplorer Services" };

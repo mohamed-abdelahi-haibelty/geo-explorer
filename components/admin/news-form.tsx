@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, ImagePlus, Lock, X } from "lucide-react";
+import { ImagePlus, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,48 +11,50 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MediaPicker } from "@/components/admin/media-picker";
 import { CldImage } from "@/components/media/cld-image";
-import { TagPicker } from "@/components/admin/tag-picker";
-import { ArticleAuthorsPicker, type AuthorLite } from "@/components/admin/article-authors-picker";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { PublicationPanel, type LocalePublicationSummary } from "@/components/admin/publication-panel";
-import { Switch } from "@/components/ui/switch";
+import { NewsGalleryEditor, type NewsGalleryItem } from "@/components/admin/news-gallery-editor";
 import ArticleEditor from "@/components/editor/article-editor-dynamic";
 import type { ArticleEditorHandle } from "@/components/editor/article-editor";
 import {
-  createArticleAction,
-  createArticlePreviewLinkAction,
-  createArticleTranslationAction,
-  deleteArticleAction,
-  getArticleForEditAction,
-  publishArticleAction,
-  unpublishArticleAction,
-  updateArticleAction,
-} from "@/server/actions/articles";
+  createNewsAction,
+  createNewsTranslationAction,
+  deleteNewsAction,
+  getNewsForEditAction,
+  publishNewsAction,
+  unpublishNewsAction,
+  updateNewsAction,
+} from "@/server/actions/news";
 import { slugify } from "@/lib/slug";
-import { formatBytes } from "@/lib/media-client";
 import { pickLocalizedText } from "@/lib/locale";
 import { LOCALES, type LocaleCode } from "@/lib/validation/locale";
 import type { JSONContent } from "@tiptap/core";
 import type { MediaAsset, PublishStatus } from "@/prisma/generated/client";
-import type { getArticleForEdit } from "@/server/queries/articles";
+import type { getNewsForEdit } from "@/server/queries/news";
 
-type ArticleForEdit = NonNullable<Awaited<ReturnType<typeof getArticleForEdit>>>;
-type Translation = ArticleForEdit["translations"][number];
+type NewsForEdit = NonNullable<Awaited<ReturnType<typeof getNewsForEdit>>>;
+type Translation = NewsForEdit["translations"][number];
 
 const LOCALE_LABELS: Record<LocaleCode, string> = { fr: "Français", en: "English", ar: "العربية" };
 
-function toAuthorLite(row: ArticleForEdit["authors"][number]): AuthorLite {
+function toGalleryItem(row: NewsForEdit["media"][number]): NewsGalleryItem {
   return {
-    id: row.author.id,
-    name: row.author.name,
-    photo: row.author.photo ? { publicId: row.author.photo.publicId, blurDataUrl: row.author.photo.blurDataUrl } : null,
+    mediaId: row.media.id,
+    type: row.media.type,
+    publicId: row.media.publicId,
+    blurDataUrl: row.media.blurDataUrl,
+    alt: row.media.type === "IMAGE" ? pickLocalizedText(row.media.alt, "fr") : "",
+    caption: (row.caption as Partial<Record<LocaleCode, string>>) ?? {},
   };
+}
+
+function toEventDateInput(date: Date | null): string {
+  return date ? date.toISOString().slice(0, 10) : "";
 }
 
 type TranslationDraft = {
   translationId: string | null;
   title: string;
-  subtitle: string;
   slug: string;
   slugTouched: boolean;
   excerpt: string;
@@ -72,7 +74,6 @@ function emptyDraft(): TranslationDraft {
   return {
     translationId: null,
     title: "",
-    subtitle: "",
     slug: "",
     slugTouched: false,
     excerpt: "",
@@ -93,7 +94,6 @@ function draftFromTranslation(t: Translation): TranslationDraft {
   return {
     translationId: t.id,
     title: t.title,
-    subtitle: t.subtitle ?? "",
     slug: t.slug,
     slugTouched: true,
     excerpt: t.excerpt ?? "",
@@ -110,25 +110,17 @@ function draftFromTranslation(t: Translation): TranslationDraft {
   };
 }
 
-function draftsFromArticle(article: ArticleForEdit | null): Record<LocaleCode, TranslationDraft> {
+function draftsFromNews(news: NewsForEdit | null): Record<LocaleCode, TranslationDraft> {
   const result = {} as Record<LocaleCode, TranslationDraft>;
   for (const locale of LOCALES) {
     const dbLocale = locale.toUpperCase();
-    const translation = article?.translations.find((t) => t.locale === dbLocale);
+    const translation = news?.translations.find((t) => t.locale === dbLocale);
     result[locale] = translation ? draftFromTranslation(translation) : emptyDraft();
   }
   return result;
 }
 
-export function ArticleForm({
-  article,
-  authorSuggestions,
-  tagSuggestions,
-}: {
-  article: ArticleForEdit | null;
-  authorSuggestions: AuthorLite[];
-  tagSuggestions: { id: string; name: string }[];
-}) {
+export function NewsForm({ news }: { news: NewsForEdit | null }) {
   const router = useRouter();
   const editorRefFr = useRef<ArticleEditorHandle>(null);
   const editorRefEn = useRef<ArticleEditorHandle>(null);
@@ -139,23 +131,22 @@ export function ArticleForm({
     ar: editorRefAr,
   };
 
-  const [articleId, setArticleId] = useState(article?.id ?? null);
-  const [drafts, setDrafts] = useState<Record<LocaleCode, TranslationDraft>>(() => draftsFromArticle(article));
+  const [newsId, setNewsId] = useState(news?.id ?? null);
+  const [drafts, setDrafts] = useState<Record<LocaleCode, TranslationDraft>>(() => draftsFromNews(news));
   const [activeLocale, setActiveLocale] = useState<LocaleCode>("fr");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [videoUrlError, setVideoUrlError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
 
-  // Locale-independent — cover, PDF, authors, tags, featured — edited once
-  // regardless of which locale tab is active (Task 04a step 10).
-  const [cover, setCover] = useState<MediaAsset | null>(article?.cover ?? null);
-  const [pdf, setPdf] = useState<{ url: string; bytes: number } | null>(
-    article?.pdfUrl ? { url: article.pdfUrl, bytes: article.pdfBytes ?? 0 } : null,
-  );
-  const [authors, setAuthors] = useState<AuthorLite[]>(article?.authors.map(toAuthorLite) ?? []);
-  const [tagNames, setTagNames] = useState<string[]>(
-    article?.tags.map((row) => pickLocalizedText(row.tag.name, "fr")) ?? [],
-  );
-  const [featured, setFeatured] = useState(article?.featured ?? false);
+  // Locale-independent — cover, event date/location, external video,
+  // gallery — edited once regardless of which locale tab is active (Task 05
+  // step 0). Gallery captions are the one exception: shared list, per-locale
+  // text — see NewsGalleryEditor.
+  const [cover, setCover] = useState<MediaAsset | null>(news?.cover ?? null);
+  const [eventDate, setEventDate] = useState(toEventDateInput(news?.eventDate ?? null));
+  const [location, setLocation] = useState(news?.location ?? "");
+  const [externalVideoUrl, setExternalVideoUrl] = useState(news?.externalVideoUrl ?? "");
+  const [gallery, setGallery] = useState<NewsGalleryItem[]>(news?.media.map(toGalleryItem) ?? []);
 
   function updateDraft(locale: LocaleCode, patch: Partial<TranslationDraft>) {
     setDrafts((prev) => ({ ...prev, [locale]: { ...prev[locale], ...patch } }));
@@ -181,37 +172,36 @@ export function ArticleForm({
 
     updateDraft(locale, { saving: true });
     setErrorMessage(null);
+    setVideoUrlError(null);
 
     const payload = {
       locale,
       title: current.title.trim(),
-      subtitle: current.subtitle.trim() || undefined,
       slug: current.slug.trim() || undefined,
       excerpt: current.excerpt.trim() || undefined,
       contentJson: editorRefs[locale].current?.getJSON() ?? ({ type: "doc", content: [] } as JSONContent),
       metaTitle: current.metaTitle.trim() || undefined,
       metaDescription: current.metaDescription.trim() || undefined,
       coverId: cover?.id,
-      pdfUrl: pdf?.url,
-      pdfBytes: pdf?.bytes,
-      featured,
-      authorIds: authors.map((a) => a.id),
-      tagNames,
+      eventDate: eventDate || undefined,
+      location: location.trim() || undefined,
+      externalVideoUrl: externalVideoUrl.trim() || undefined,
+      media: gallery.map((item) => ({ mediaId: item.mediaId, caption: item.caption })),
     };
 
     const result = current.translationId
-      ? await updateArticleAction({
+      ? await updateNewsAction({
           translationId: current.translationId,
           updatedAt: current.lastKnownUpdatedAt!,
           force: opts.force,
           ...payload,
         })
-      : articleId
-        ? await createArticleTranslationAction({ articleId, ...payload })
-        : await createArticleAction(payload);
+      : newsId
+        ? await createNewsTranslationAction({ newsId, ...payload })
+        : await createNewsAction(payload);
 
     if (result.ok) {
-      if (!articleId) setArticleId(result.data.articleId);
+      if (!newsId) setNewsId(result.data.newsId);
       const nextDraft: TranslationDraft = {
         ...current,
         translationId: result.data.translationId,
@@ -224,8 +214,8 @@ export function ArticleForm({
         saveLabel: `Enregistré à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}.`,
       };
       setDrafts((prev) => ({ ...prev, [locale]: nextDraft }));
-      if (!article && !articleId) {
-        router.replace(`/admin/articles/${result.data.articleId}`);
+      if (!news && !newsId) {
+        router.replace(`/admin/actualites/${result.data.newsId}`);
       }
       return nextDraft;
     }
@@ -239,15 +229,14 @@ export function ArticleForm({
     } else {
       setErrorMessage(result.message);
       if (result.fields?.slug) updateDraft(locale, { saveLabel: "Le slug est verrouillé après la première publication." });
+      if (result.fields?.externalVideoUrl) setVideoUrlError(result.fields.externalVideoUrl);
     }
     return null;
   }
 
-  // Three independent 30s-debounce autosave timers, one per locale — a dirty
-  // EN tab keeps counting down even while the admin is looking at FR
-  // (Task 04a step 10). Unrolled per-locale rather than a loop: the set of
-  // locales is fixed, so three static hook call sites are exactly as valid
-  // as one, and each effect's dependency array stays precise.
+  // Three independent 30s-debounce autosave timers, one per locale — same
+  // pattern as ArticleForm (a dirty EN tab keeps counting down even while
+  // the admin is looking at FR).
   useEffect(() => {
     if (!drafts.fr.dirty || drafts.fr.conflict) return;
     const timeout = setTimeout(() => performSave("fr"), 30000);
@@ -268,10 +257,10 @@ export function ArticleForm({
   }, [drafts.ar.dirty, drafts.ar.conflict]);
 
   async function handleReloadNewer(locale: LocaleCode) {
-    if (!articleId) return;
-    const result = await getArticleForEditAction(articleId);
+    if (!newsId) return;
+    const result = await getNewsForEditAction(newsId);
     if (!result.ok || !result.data) {
-      setErrorMessage(result.ok ? "Article introuvable." : result.message);
+      setErrorMessage(result.ok ? "Actualité introuvable." : result.message);
       return;
     }
     const fresh = result.data;
@@ -287,17 +276,17 @@ export function ArticleForm({
     editorRefs[locale].current?.setContent((freshTranslation?.contentJson as JSONContent | undefined) ?? { type: "doc", content: [] });
 
     setCover(fresh.cover);
-    setPdf(fresh.pdfUrl ? { url: fresh.pdfUrl, bytes: fresh.pdfBytes ?? 0 } : null);
-    setAuthors(fresh.authors.map(toAuthorLite));
-    setTagNames(fresh.tags.map((row) => pickLocalizedText(row.tag.name, "fr")));
-    setFeatured(fresh.featured);
+    setEventDate(toEventDateInput(fresh.eventDate));
+    setLocation(fresh.location ?? "");
+    setExternalVideoUrl(fresh.externalVideoUrl ?? "");
+    setGallery(fresh.media.map(toGalleryItem));
   }
 
   async function handlePublish() {
     const saved = await performSave(activeLocale);
     if (!saved?.translationId) return;
     setPublishing(true);
-    const result = await publishArticleAction(saved.translationId);
+    const result = await publishNewsAction(saved.translationId);
     setPublishing(false);
     if (result.ok) updateDraft(activeLocale, { status: "PUBLISHED", publishedAt: new Date() });
     else setErrorMessage(result.message);
@@ -307,25 +296,16 @@ export function ArticleForm({
     const translationId = drafts[activeLocale].translationId;
     if (!translationId) return;
     setPublishing(true);
-    const result = await unpublishArticleAction(translationId);
+    const result = await unpublishNewsAction(translationId);
     setPublishing(false);
     if (result.ok) updateDraft(activeLocale, { status: "DRAFT" });
     else setErrorMessage(result.message);
   }
 
-  async function handlePreview() {
-    const saved = await performSave(activeLocale);
-    const translationId = saved?.translationId ?? drafts[activeLocale].translationId;
-    if (!translationId) return;
-    const result = await createArticlePreviewLinkAction(translationId);
-    if (result.ok) window.open(result.data.url, "_blank", "noopener,noreferrer");
-    else setErrorMessage(result.message);
-  }
-
   async function handleDelete() {
-    if (!articleId) return;
-    const result = await deleteArticleAction(articleId);
-    if (result.ok) router.push("/admin/articles");
+    if (!newsId) return;
+    const result = await deleteNewsAction(newsId);
+    if (result.ok) router.push("/admin/actualites");
     else setErrorMessage(result.message);
   }
 
@@ -378,11 +358,11 @@ export function ArticleForm({
               )}
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`article-title-${locale}`}>
+                <Label htmlFor={`news-title-${locale}`}>
                   Titre <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id={`article-title-${locale}`}
+                  id={`news-title-${locale}`}
                   value={d.title}
                   onChange={(event) => {
                     const nextTitle = event.target.value;
@@ -395,36 +375,26 @@ export function ArticleForm({
                   }}
                   dir={locale === "ar" ? "rtl" : "ltr"}
                   className="h-11 text-lg font-medium"
-                  placeholder="Titre de l'article"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`article-subtitle-${locale}`}>Sous-titre</Label>
-                <Input
-                  id={`article-subtitle-${locale}`}
-                  value={d.subtitle}
-                  onChange={(event) => updateDraft(locale, { subtitle: event.target.value, dirty: true, saveLabel: "Modifications non enregistrées." })}
-                  dir={locale === "ar" ? "rtl" : "ltr"}
+                  placeholder="Titre de l'actualité"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-1.5">
-                  <Label htmlFor={`article-slug-${locale}`}>Slug</Label>
+                  <Label htmlFor={`news-slug-${locale}`}>Slug</Label>
                   {Boolean(d.publishedAt) && <Lock aria-hidden="true" className="size-3 text-muted-foreground" />}
                 </div>
                 <Input
-                  id={`article-slug-${locale}`}
+                  id={`news-slug-${locale}`}
                   value={d.slug}
                   disabled={Boolean(d.publishedAt)}
                   onChange={(event) =>
                     updateDraft(locale, { slug: event.target.value, slugTouched: true, dirty: true, saveLabel: "Modifications non enregistrées." })
                   }
                   className="font-mono text-sm"
-                  aria-describedby={`article-slug-hint-${locale}`}
+                  aria-describedby={`news-slug-hint-${locale}`}
                 />
-                <p id={`article-slug-hint-${locale}`} className="text-xs text-muted-foreground">
+                <p id={`news-slug-hint-${locale}`} className="text-xs text-muted-foreground">
                   {d.publishedAt
                     ? "Verrouillé — cette traduction a déjà été publiée."
                     : "Généré depuis le titre, modifiable jusqu'à la première publication."}
@@ -432,19 +402,19 @@ export function ArticleForm({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor={`article-excerpt-${locale}`}>Extrait</Label>
+                <Label htmlFor={`news-excerpt-${locale}`}>Extrait</Label>
                 <Textarea
-                  id={`article-excerpt-${locale}`}
+                  id={`news-excerpt-${locale}`}
                   rows={3}
                   value={d.excerpt}
                   onChange={(event) => updateDraft(locale, { excerpt: event.target.value, dirty: true, saveLabel: "Modifications non enregistrées." })}
                   dir={locale === "ar" ? "rtl" : "ltr"}
-                  placeholder="Généré automatiquement depuis le corps de l'article si laissé vide"
+                  placeholder="Généré automatiquement depuis le corps de l'actualité si laissé vide"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>Corps de l&apos;article</Label>
+                <Label>Corps de l&apos;actualité</Label>
                 <ArticleEditor
                   ref={editorRefs[locale]}
                   initialContent={d.initialContent}
@@ -459,8 +429,8 @@ export function ArticleForm({
                 </CardHeader>
                 <CardContent>
                   <SeoPanel
-                    idPrefix="article"
-                    section="articles"
+                    idPrefix="news"
+                    section="actualites"
                     locale={locale}
                     metaTitle={d.metaTitle}
                     metaDescription={d.metaDescription}
@@ -478,36 +448,33 @@ export function ArticleForm({
           );
         })}
 
-        <div className="flex flex-col gap-1.5">
-          <Label>Tags</Label>
-          <TagPicker value={tagNames} onChange={(next) => { setTagNames(next); markActiveDirty(); }} suggestions={tagSuggestions} />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Diaporama</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <NewsGalleryEditor
+              value={gallery}
+              activeLocale={activeLocale}
+              onChange={(next) => {
+                setGallery(next);
+                markActiveDirty();
+              }}
+            />
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex flex-col gap-4">
         <PublicationPanel
-          entityId={articleId}
-          entityLabel="cet article"
+          entityId={newsId}
+          entityLabel="cette actualité"
           summaries={summaries}
           activeLocale={activeLocale}
-          extra={
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="article-featured" className="flex flex-col gap-0.5">
-                <span>Mise en avant</span>
-                <span className="text-xs font-normal text-muted-foreground">Affiché en priorité sur l&apos;accueil</span>
-              </Label>
-              <Switch
-                id="article-featured"
-                checked={featured}
-                onCheckedChange={(value) => { setFeatured(value); markActiveDirty(); }}
-              />
-            </div>
-          }
           saving={draft.saving}
           publishing={publishing}
           saveLabel={draft.saveLabel}
           onSave={() => performSave(activeLocale)}
-          onPreview={handlePreview}
           onPublish={handlePublish}
           onUnpublish={handleUnpublish}
           onDelete={handleDelete}
@@ -551,45 +518,53 @@ export function ArticleForm({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Étude (PDF)</CardTitle>
+            <CardTitle className="text-sm">Événement</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {pdf ? (
-              <div className="flex items-center gap-2 rounded-lg border border-border p-2">
-                <FileText aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-                <span className="flex-1 truncate text-xs text-muted-foreground">{formatBytes(pdf.bytes)}</span>
-                <Button type="button" variant="ghost" size="icon-sm" onClick={() => { setPdf(null); markActiveDirty(); }} aria-label="Retirer le PDF">
-                  <X aria-hidden="true" className="size-3.5" />
-                </Button>
-              </div>
-            ) : (
-              <MediaPicker
-                accept={["RAW"]}
-                trigger={
-                  <Button type="button" variant="outline" size="sm">
-                    Joindre un PDF
-                  </Button>
-                }
-                onSelect={(assets) => {
-                  const asset = assets[0];
-                  if (asset) setPdf({ url: asset.url, bytes: asset.bytes });
-                  markActiveDirty();
-                }}
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="news-event-date">Date de l&apos;événement</Label>
+              <Input
+                id="news-event-date"
+                type="date"
+                value={eventDate}
+                onChange={(event) => { setEventDate(event.target.value); markActiveDirty(); }}
               />
-            )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="news-location">Lieu</Label>
+              <Input
+                id="news-location"
+                value={location}
+                onChange={(event) => { setLocation(event.target.value); markActiveDirty(); }}
+                placeholder="Nouakchott"
+              />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Auteurs</CardTitle>
+            <CardTitle className="text-sm">Vidéo externe</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ArticleAuthorsPicker
-              value={authors}
-              onChange={(next) => { setAuthors(next); markActiveDirty(); }}
-              suggestions={authorSuggestions}
+          <CardContent className="flex flex-col gap-1.5">
+            <Label htmlFor="news-external-video">Lien YouTube ou Vimeo</Label>
+            <Input
+              id="news-external-video"
+              value={externalVideoUrl}
+              onChange={(event) => { setExternalVideoUrl(event.target.value); markActiveDirty(); }}
+              placeholder="https://www.youtube.com/watch?v=…"
+              aria-invalid={Boolean(videoUrlError)}
+              aria-describedby="news-external-video-hint"
             />
+            {videoUrlError && (
+              <p role="alert" className="text-xs text-destructive">
+                {videoUrlError}
+              </p>
+            )}
+            <p id="news-external-video-hint" className="text-xs text-muted-foreground">
+              Vidéo trop volumineuse (100 Mo) ou trop longue (120 s) pour être envoyée directement ? Utilisez un lien
+              YouTube ou Vimeo ici à la place.
+            </p>
           </CardContent>
         </Card>
       </div>
