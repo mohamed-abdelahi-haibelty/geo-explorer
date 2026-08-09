@@ -2,11 +2,11 @@
 
 Public website and admin back-office for GeoExplorer Services, a Mauritanian
 geoscience and mining consultancy based in Nouakchott. The site presents the
-firm's service lines, publishes technical articles and company news, and
-routes prospect enquiries to the client's inbox. Every piece of site content
-is editable from a single admin back-office — no rebuild required. The
-public site is published in French, English and Arabic (RTL); the admin
-back-office itself stays French-only.
+firm's service lines, publishes technical articles and company news — with
+ordered photo/video galleries — and routes prospect enquiries to the
+client's inbox. Every piece of site content is editable from a single admin
+back-office — no rebuild required. The public site is published in French,
+English and Arabic (RTL); the admin back-office itself stays French-only.
 
 ## Stack
 
