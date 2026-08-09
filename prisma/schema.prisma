@@ -285,7 +285,7 @@ model NewsMedia {
   newsId   String
   mediaId  String
   position Int        @default(0)
-  caption  String?
+  caption  Json? // LocalizedText ({fr,en?,ar?}) — reader-facing, unlike position
   news     News       @relation(fields: [newsId], references: [id], onDelete: Cascade)
   media    MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
