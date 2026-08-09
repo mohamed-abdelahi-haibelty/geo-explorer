@@ -24,12 +24,28 @@ const ArticleEditor = forwardRef<
   ArticleEditorHandle,
   { initialContent: JSONContent | null; onDirty?: () => void; disabled?: boolean; dir?: "ltr" | "rtl" }
 >(function ArticleEditor({ initialContent, onDirty, disabled = false, dir = "ltr" }, ref) {
+  // `immediatelyRender: true` constructs the editor synchronously during
+  // render; setting the initial content fires Tiptap's own `update` event as
+  // part of that construction, before this component has committed — calling
+  // `onDirty` (→ the parent form's setState) from inside that first event
+  // logs "Can't perform a React state update on a component that hasn't
+  // mounted yet" and arms the 30s autosave timer on a freshly created,
+  // untouched article/news item for no reason. Same root cause as the
+  // setEditable guard below (a spurious Tiptap-internal event, not a genuine
+  // user edit) — `onCreate` fires once the construction settles, so only
+  // updates after that count as "dirty".
+  const createdRef = useRef(false);
   const editor = useEditor({
     extensions: createEditorExtensions({ imageExtension: DraggableResponsiveImage }),
     content: initialContent ?? EMPTY_DOC,
     editable: !disabled,
     immediatelyRender: true,
-    onUpdate: () => onDirty?.(),
+    onCreate: () => {
+      createdRef.current = true;
+    },
+    onUpdate: () => {
+      if (createdRef.current) onDirty?.();
+    },
     editorProps: {
       attributes: {
         // Capped at the same max-w-2xl the published article body renders at
