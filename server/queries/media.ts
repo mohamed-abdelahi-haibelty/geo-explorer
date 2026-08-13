@@ -9,10 +9,9 @@ export async function listMedia({ type, search, page }: { type?: MediaType; sear
   cacheLife(CACHE_PROFILE);
   cacheTag(TAGS.media);
 
-  // `alt` is locale-keyed JSON now (Task 04a) — Prisma's plain `contains`
-  // string filter doesn't apply to Json columns; `string_contains` with an
-  // explicit path does. Searches the French value only (the admin's working
-  // language — see architecture.md's storage-strategy table).
+  // `alt` is locale-keyed JSON now — Prisma's plain `contains` string filter
+  // doesn't apply to Json columns; `string_contains` with an explicit path
+  // does. Searches the French value only (the admin's working language).
   const where = {
     ...(type ? { type } : {}),
     ...(search
@@ -49,9 +48,8 @@ export async function getMediaUsage(id: string): Promise<MediaUsageItem[]> {
   cacheTag(TAGS.media);
 
   // Title now lives on the translation row — the FR one stands in as the
-  // admin-facing label (admin works in French; see architecture.md's
-  // storage-strategy table), falling back to whichever locale exists if FR
-  // was never written (e.g. an EN-only draft).
+  // admin-facing label (admin works in French), falling back to whichever
+  // locale exists if FR was never written (e.g. an EN-only draft).
   const FR_TITLE = { translations: { select: { locale: true, title: true } } } as const;
 
   function bestTitle(translations: { locale: string; title: string }[]): string {
@@ -75,6 +73,27 @@ export async function getMediaUsage(id: string): Promise<MediaUsageItem[]> {
     ...partners.map((item) => ({ kind: "partner" as const, label: item.name })),
     ...galleries.map((item) => ({ kind: "gallery" as const, label: bestTitle(item.news.translations) })),
   ];
+}
+
+// Public read — resolves the handful of `imageId` fields a
+// PageSection/Service/Partner row can carry into renderable
+// {publicId, blurDataUrl, alt} shapes, keyed by id. Most of these are still
+// unset (no media has been uploaded through the picker in this environment
+// yet), so callers must treat a missing id in the returned map as "no
+// image", not an error.
+export async function getMediaAssetsByIds(ids: string[]) {
+  "use cache";
+  cacheLife(CACHE_PROFILE);
+  cacheTag(TAGS.media);
+
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  if (uniqueIds.length === 0) return {} as Record<string, { publicId: string; blurDataUrl: string | null; alt: unknown }>;
+
+  const rows = await db.mediaAsset.findMany({
+    where: { id: { in: uniqueIds } },
+    select: { id: true, publicId: true, blurDataUrl: true, alt: true },
+  });
+  return Object.fromEntries(rows.map((row) => [row.id, row]));
 }
 
 export async function getMediaUsageBatch(ids: string[]): Promise<MediaUsageItem[]> {

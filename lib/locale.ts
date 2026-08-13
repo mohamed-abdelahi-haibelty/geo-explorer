@@ -1,5 +1,5 @@
 import type { Locale as PrismaLocale } from "@/prisma/generated/client";
-import type { LocalizedText, LocaleCode } from "@/lib/validation/locale";
+import type { LocalizedText, LocalizedStringArray, LocaleCode } from "@/lib/validation/locale";
 
 // Two representations, deliberately: the app/URL layer uses lowercase codes
 // (next-intl's [locale] segment — "fr"/"en"/"ar"), the DB uses the Prisma
@@ -16,7 +16,7 @@ export function fromDbLocale(locale: PrismaLocale): LocaleCode {
 // Structural content (PageSection, Service) must exist in all three locales;
 // a missing translation falls back to French rather than a blank page. This
 // is deliberately NOT used for publications (Article/News) — those are
-// independent per locale, see architecture.md's locale invariants.
+// independent per locale.
 export function resolveStructural<T extends { locale: PrismaLocale }>(
   rows: T[],
   locale: LocaleCode,
@@ -29,8 +29,8 @@ export function resolveStructural<T extends { locale: PrismaLocale }>(
 }
 
 // Author.title/bio, Tag.name, Partner.category, MediaAsset.alt/caption —
-// short strings stored as {fr, en?, ar?} JSON (see architecture.md's
-// storage-strategy table). `fallback` lets a picker show *something* rather
+// short strings stored as {fr, en?, ar?} JSON. `fallback` lets a picker
+// show *something* rather
 // than an empty string when the active locale's value hasn't been written
 // yet; pass `false` (the default) where an empty result is meaningful
 // (e.g. deciding whether an EN label still needs writing).
@@ -45,4 +45,20 @@ export function pickLocalizedText(
   if (typeof own === "string" && own.length > 0) return own;
   if (!fallback) return "";
   return typeof text.fr === "string" ? text.fr : "";
+}
+
+// Same fallback rule as pickLocalizedText, for locale-keyed bullet arrays
+// (ServiceBlock.items) — never index across locales positionally, an
+// EN/AR array can have a different length than fr.
+export function pickLocalizedArray(
+  value: unknown,
+  locale: LocaleCode,
+  { fallback = true }: { fallback?: boolean } = {},
+): string[] {
+  const arr = value as LocalizedStringArray | null | undefined;
+  if (!arr || typeof arr !== "object") return [];
+  const own = arr[locale];
+  if (Array.isArray(own) && own.length > 0) return own;
+  if (!fallback) return [];
+  return Array.isArray(arr.fr) ? arr.fr : [];
 }

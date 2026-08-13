@@ -3,7 +3,7 @@ import { z } from "zod";
 // Mirrors the `Locale` Prisma enum (prisma/schema.prisma) — kept as a
 // separate literal tuple, not derived from the generated client, so this
 // file has no Prisma import (validation schemas are safe to share with
-// client components; server/generated/** is not, per code-standards.md).
+// client components; server/generated/** is not).
 export const LOCALES = ["fr", "en", "ar"] as const;
 export type LocaleCode = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: LocaleCode = "fr";
@@ -23,3 +23,16 @@ export function localizedTextSchema<T extends z.ZodString>(inner: T) {
 }
 
 export type LocalizedText = z.infer<ReturnType<typeof localizedTextSchema<z.ZodString>>>;
+
+// { fr: string[], en?: string[], ar?: string[] } — for locale-keyed bullet
+// lists (ServiceBlock.items). Arrays are never coupled positionally across
+// locales: a locale may have a different number of items than fr.
+export function localizedStringArraySchema<T extends z.ZodString>(inner: T) {
+  return z.object({
+    fr: z.array(inner),
+    en: z.array(inner).optional(),
+    ar: z.array(inner).optional(),
+  });
+}
+
+export type LocalizedStringArray = z.infer<ReturnType<typeof localizedStringArraySchema<z.ZodString>>>;
