@@ -13,6 +13,10 @@ async function seedSiteSetting() {
       tagline:
         "Explorer le sol et le sous-sol. Révéler leurs richesses. Valoriser leur potentiel.",
       address: "37 Ext. F-NORD, Secteur 2, Tevragh Zeina, Nouakchott, Mauritanie",
+      // Tevragh-Zeïna district center — a reasoned default, to recalibrate
+      // against the real premises once surveyed.
+      latitude: 18.1097,
+      longitude: -15.978,
       phones: ["+222 22 00 20 04", "+222 20 28 00 00"],
       email: "contact@geoexplorerservices.com",
       siteUrl: "https://geoexplorerservices.com/",
@@ -23,6 +27,8 @@ async function seedSiteSetting() {
       tagline:
         "Explorer le sol et le sous-sol. Révéler leurs richesses. Valoriser leur potentiel.",
       address: "37 Ext. F-NORD, Secteur 2, Tevragh Zeina, Nouakchott, Mauritanie",
+      latitude: 18.1097,
+      longitude: -15.978,
       phones: ["+222 22 00 20 04", "+222 20 28 00 00"],
       email: "contact@geoexplorerservices.com",
       siteUrl: "https://geoexplorerservices.com/",
@@ -34,6 +40,7 @@ async function seedSiteSetting() {
 const pageSections: {
   page: PageKey;
   key: string;
+  locale?: Locale;
   order: number;
   data: Prisma.InputJsonValue;
 }[] = [
@@ -306,6 +313,28 @@ const pageSections: {
         "De l'exploration initiale à la valorisation des ressources, GeoExplorer Services vous accompagne avec la rigueur scientifique et la réactivité terrain que vos projets exigent.",
     },
   },
+  {
+    page: PageKey.SERVICES,
+    key: "intro",
+    locale: Locale.EN,
+    order: 0,
+    data: {
+      heading: "Integrated solutions, designed for every stage of your project.",
+      body:
+        "From initial exploration to resource development, GeoExplorer Services supports you with the scientific rigour and field responsiveness your projects demand.",
+    },
+  },
+  {
+    page: PageKey.SERVICES,
+    key: "intro",
+    locale: Locale.AR,
+    order: 0,
+    data: {
+      heading: "حلول متكاملة، مصمّمة لكل مرحلة من مراحل مشروعكم.",
+      body:
+        "من الاستكشاف الأولي إلى تثمين الموارد، يرافقكم GeoExplorer Services بالصرامة العلمية والاستجابة الميدانية التي تتطلبها مشاريعكم.",
+    },
+  },
 
   // ───────────────────────── CONTACT ─────────────────────────
   {
@@ -343,20 +372,66 @@ const pageSections: {
       ],
     },
   },
+
+  // ───────────────────────── GLOBAL ─────────────────────────
+  // A starting draft built only from facts already confirmed (identity,
+  // address, contact, self-hosting); no registration number or named
+  // individual is invented. Editable from /admin/pages/mentions-legales
+  // like every other structural section.
+  {
+    page: PageKey.GLOBAL,
+    key: "legal",
+    order: 0,
+    data: {
+      heading: "Mentions légales",
+      intro:
+        "Conformément aux dispositions en vigueur, les présentes mentions légales précisent l'identité de l'éditeur du site et les conditions d'utilisation du contenu publié.",
+      sections: [
+        {
+          title: "Éditeur du site",
+          body:
+            "GeoExplorer Services — 37 Ext. F-NORD, Secteur 2, Tevragh Zeina, Nouakchott, Mauritanie. Téléphone : +222 22 00 20 04 / +222 20 28 00 00. E-mail : contact@geoexplorerservices.com. La publication du site est assurée par la direction de GeoExplorer Services.",
+        },
+        {
+          title: "Hébergement",
+          body:
+            "Le site est hébergé et exploité par GeoExplorer Services sur une infrastructure propre, accessible via une connexion chiffrée (TLS).",
+        },
+        {
+          title: "Propriété intellectuelle",
+          body:
+            "L'ensemble des contenus publiés sur ce site — textes, études, images et éléments graphiques — est la propriété de GeoExplorer Services ou de ses partenaires, sauf mention contraire, et ne peut être reproduit sans autorisation préalable.",
+        },
+        {
+          title: "Données personnelles",
+          body:
+            "Les informations transmises via le formulaire de contact sont utilisées exclusivement pour traiter votre demande et ne sont communiquées à aucun tiers. Vous pouvez demander leur consultation, leur correction ou leur suppression en écrivant à contact@geoexplorerservices.com.",
+        },
+        {
+          title: "Cookies",
+          body:
+            "Ce site n'utilise pas de cookies de suivi publicitaire. Seuls les cookies strictement nécessaires à son fonctionnement (choix de la langue) peuvent être déposés.",
+        },
+      ],
+    },
+  },
 ];
 
-// Seed content is French — every row becomes the FR row, matching how the
-// existing-data migration treated Article/News/Service (Task 04a). EN/AR
-// content is a translation task for the client, not something to fabricate
-// here (see content-source.md).
+// Seed content is French by default — a row becomes the FR row unless it
+// declares its own `locale`, matching how the existing-data migration
+// treated Article/News/Service. EN/AR content for most sections is still a
+// translation task for the client; the Services page intro is an
+// exception — its EN/AR text is confirmed client copy, so it's seeded
+// alongside FR.
 async function seedPageSections() {
   for (const section of pageSections) {
+    const locale = section.locale ?? Locale.FR;
     await db.pageSection.upsert({
-      where: { page_key_locale: { page: section.page, key: section.key, locale: Locale.FR } },
+      where: { page_key_locale: { page: section.page, key: section.key, locale } },
       create: {
         page: section.page,
         key: section.key,
-        locale: Locale.FR,
+        locale,
         order: section.order,
         data: section.data,
       },
@@ -368,210 +443,583 @@ async function seedPageSections() {
   }
 }
 
+type ServiceTranslationSeed = { title: string; tagline: string; summary: string };
+type ServiceBlockSeed = {
+  title: { fr: string; en: string; ar: string };
+  items: { fr: string[]; en: string[]; ar: string[] };
+};
+
+// EN/AR text below comes from client-confirmed translated copy (Fiches
+// services section) — unlike the rest of pageSections/services' FR-only
+// rows, this is translated copy, not a fabrication.
 const services: {
   slug: string;
   order: number;
-  title: string;
-  tagline: string;
-  summary: string;
   icon: string;
-  blocks: { title: string; items: string[] }[];
+  translations: { fr: ServiceTranslationSeed; en: ServiceTranslationSeed; ar: ServiceTranslationSeed };
+  blocks: ServiceBlockSeed[];
 }[] = [
   {
     slug: "geologie-exploration-miniere",
     order: 0,
-    title: "Géologie et exploration minière",
-    tagline: "Une donnée maîtrisée, à chaque étape du projet.",
-    summary:
-      "Planifier, acquérir, contrôler et interpréter : nous couvrons l'intégralité du cycle d'exploration, avec la même exigence de qualité à chaque phase.",
     icon: "mountain",
+    translations: {
+      fr: {
+        title: "Géologie et exploration minière",
+        tagline: "Une donnée maîtrisée, à chaque étape du projet.",
+        summary:
+          "Planifier, acquérir, contrôler et interpréter : nous couvrons l'intégralité du cycle d'exploration, avec la même exigence de qualité à chaque phase.",
+      },
+      en: {
+        title: "Geology and mining exploration",
+        tagline: "Data mastered, at every stage of the project.",
+        summary:
+          "Plan, acquire, control and interpret: we cover the entire exploration cycle, with the same quality standard at every phase.",
+      },
+      ar: {
+        title: "الجيولوجيا والاستكشاف التعديني",
+        tagline: "بيانات محكمة، في كل مرحلة من مراحل المشروع.",
+        summary:
+          "التخطيط، الجمع، المراقبة والتفسير: نغطي دورة الاستكشاف بأكملها، بنفس معايير الجودة في كل مرحلة.",
+      },
+    },
     blocks: [
       {
-        title: "Planification et terrain",
-        items: [
-          "Planification et exécution des programmes d'exploration",
-          "Reconnaissance et cartographie géologique 2D/3D, échantillonnage roche, sol et sédiments",
-          "Tranchées, puits, tarière et contrôle des travaux",
-        ],
+        title: {
+          fr: "Planification et terrain",
+          en: "Planning and fieldwork",
+          ar: "التخطيط والعمل الميداني",
+        },
+        items: {
+          fr: [
+            "Planification et exécution des programmes d'exploration",
+            "Reconnaissance et cartographie géologique 2D/3D, échantillonnage roche, sol et sédiments",
+            "Tranchées, puits, tarière et contrôle des travaux",
+          ],
+          en: [
+            "Planning and execution of exploration programmes",
+            "2D/3D geological reconnaissance and mapping, rock, soil and sediment sampling",
+            "Trenching, pitting, auger drilling and works supervision",
+          ],
+          ar: [
+            "تخطيط وتنفيذ برامج الاستكشاف",
+            "الاستطلاع ورسم الخرائط الجيولوجية ثنائية وثلاثية الأبعاد، أخذ عينات من الصخور والتربة والرواسب",
+            "الخنادق، الآبار، الحفر بالمثقاب ومراقبة الأشغال",
+          ],
+        },
       },
       {
-        title: "Données géoscientifiques",
-        items: [
-          "Compilation de données géologiques, géochimiques et géophysiques",
-          "Création et gestion de géodatabases SIG",
-          "Acquisition, traitement et interprétation des données",
-        ],
+        title: {
+          fr: "Données géoscientifiques",
+          en: "Geoscience data",
+          ar: "البيانات الجيولوجية",
+        },
+        items: {
+          fr: [
+            "Compilation de données géologiques, géochimiques et géophysiques",
+            "Création et gestion de géodatabases SIG",
+            "Acquisition, traitement et interprétation des données",
+          ],
+          en: [
+            "Compilation of geological, geochemical and geophysical data",
+            "Creation and management of GIS geodatabases",
+            "Data acquisition, processing and interpretation",
+          ],
+          ar: [
+            "تجميع البيانات الجيولوجية والجيوكيميائية والجيوفيزيائية",
+            "إنشاء وإدارة قواعد بيانات جغرافية (SIG)",
+            "جمع البيانات ومعالجتها وتفسيرها",
+          ],
+        },
       },
       {
-        title: "Forages et contrôle qualité (QA/QC)",
-        items: [
-          "Contrôle et supervision des forages RC et DD",
-          "Description lithologique et structurale des forages",
-          "Évaluation des procédures, traçabilité et contrôle QA/QC — pour une donnée sur laquelle vous pouvez bâtir vos décisions",
-        ],
+        title: {
+          fr: "Forages et contrôle qualité (QA/QC)",
+          en: "Drilling and quality control (QA/QC)",
+          ar: "الحفر ومراقبة الجودة (QA/QC)",
+        },
+        items: {
+          fr: [
+            "Contrôle et supervision des forages RC et DD",
+            "Description lithologique et structurale des forages",
+            "Évaluation des procédures, traçabilité et contrôle QA/QC — pour une donnée sur laquelle vous pouvez bâtir vos décisions",
+          ],
+          en: [
+            "Control and supervision of RC and DD drilling",
+            "Lithological and structural logging of drill holes",
+            "Evaluation of procedures, traceability and QA/QC control — for data you can build your decisions on",
+          ],
+          ar: [
+            "مراقبة والإشراف على الحفر بطريقتي RC وDD",
+            "الوصف الليثولوجي والبنيوي لسبر الآبار",
+            "تقييم الإجراءات، التتبع ومراقبة الجودة (QA/QC) — لبيانات يمكنكم بناء قراراتكم عليها",
+          ],
+        },
       },
       {
-        title: "Modélisation et évaluation",
-        items: [
-          "Modélisation géologique et estimation des ressources",
-          "Ciblage et hiérarchisation des zones prospectives",
-          "Rapports techniques et recommandations opérationnelles claires",
-        ],
+        title: {
+          fr: "Modélisation et évaluation",
+          en: "Modelling and evaluation",
+          ar: "النمذجة والتقييم",
+        },
+        items: {
+          fr: [
+            "Modélisation géologique et estimation des ressources",
+            "Ciblage et hiérarchisation des zones prospectives",
+            "Rapports techniques et recommandations opérationnelles claires",
+          ],
+          en: [
+            "Geological modelling and resource estimation",
+            "Targeting and prioritisation of prospective zones",
+            "Technical reports and clear operational recommendations",
+          ],
+          ar: [
+            "النمذجة الجيولوجية وتقدير الموارد",
+            "تحديد وترتيب أولويات المناطق الواعدة",
+            "تقارير تقنية وتوصيات عملياتية واضحة",
+          ],
+        },
       },
     ],
   },
   {
     slug: "ingenierie-miniere-etudes",
     order: 1,
-    title: "Ingénierie minière et études",
-    tagline: "De l'idée au projet viable.",
-    summary:
-      "Des études qui transforment un gisement en projet bancable, et un projet en exploitation performante.",
     icon: "settings",
+    translations: {
+      fr: {
+        title: "Ingénierie minière et études",
+        tagline: "De l'idée au projet viable.",
+        summary:
+          "Des études qui transforment un gisement en projet bancable, et un projet en exploitation performante.",
+      },
+      en: {
+        title: "Mining engineering and studies",
+        tagline: "From idea to viable project.",
+        summary:
+          "Studies that turn a deposit into a bankable project, and a project into a high-performing operation.",
+      },
+      ar: {
+        title: "الهندسة التعدينية والدراسات",
+        tagline: "من الفكرة إلى المشروع القابل للتحقيق.",
+        summary:
+          "دراسات تحوّل الرواسب إلى مشروع قابل للتمويل، والمشروع إلى استغلال عالي الأداء.",
+      },
+    },
     blocks: [
       {
-        title: "Études minières",
-        items: [
-          "Évaluation technique et due diligence",
-          "Pré-faisabilité et faisabilité technico-économique",
-          "Planification, optimisation et analyse de scénarios",
-          "Appui aux standards internationaux JORC et NI 43-101",
-          "Cartographie géologique",
-        ],
+        title: {
+          fr: "Études minières",
+          en: "Mining studies",
+          ar: "الدراسات التعدينية",
+        },
+        items: {
+          fr: [
+            "Évaluation technique et due diligence",
+            "Pré-faisabilité et faisabilité technico-économique",
+            "Planification, optimisation et analyse de scénarios",
+            "Appui aux standards internationaux JORC et NI 43-101",
+            "Cartographie géologique",
+          ],
+          en: [
+            "Technical assessment and due diligence",
+            "Technical-economic pre-feasibility and feasibility studies",
+            "Planning, optimisation and scenario analysis",
+            "Support with JORC and NI 43-101 international standards",
+            "Geological mapping",
+          ],
+          ar: [
+            "التقييم التقني والفحص النافي للجهالة (Due Diligence)",
+            "دراسات الجدوى الأولية والجدوى التقنية الاقتصادية",
+            "التخطيط والتحسين وتحليل السيناريوهات",
+            "الدعم في اعتماد المعايير الدولية JORC وNI 43-101",
+            "رسم الخرائط الجيولوجية",
+          ],
+        },
       },
       {
-        title: "Exploitation et assistance",
-        items: [
-          "Sélection des méthodes d'exploitation les mieux adaptées",
-          "Assistance technique à l'exploitation semi-industrielle et industrielle",
-          "Suivi technique des opérations et production de rapports",
-        ],
+        title: {
+          fr: "Exploitation et assistance",
+          en: "Operations and assistance",
+          ar: "الاستغلال والمساعدة",
+        },
+        items: {
+          fr: [
+            "Sélection des méthodes d'exploitation les mieux adaptées",
+            "Assistance technique à l'exploitation semi-industrielle et industrielle",
+            "Suivi technique des opérations et production de rapports",
+          ],
+          en: [
+            "Selection of the most suitable mining methods",
+            "Technical assistance for semi-industrial and industrial operations",
+            "Technical monitoring of operations and reporting",
+          ],
+          ar: [
+            "اختيار طرق الاستغلال الأنسب",
+            "المساعدة التقنية للاستغلال شبه الصناعي والصناعي",
+            "المتابعة التقنية للعمليات وإعداد التقارير",
+          ],
+        },
       },
       {
-        title: "Traitement et valorisation",
-        items: [
-          "Appui à la définition des unités de traitement",
-          "Analyse de variantes techniques et des besoins en essais",
-          "Coordination avec laboratoires et spécialistes des procédés",
-        ],
+        title: {
+          fr: "Traitement et valorisation",
+          en: "Processing and beneficiation",
+          ar: "المعالجة والتثمين",
+        },
+        items: {
+          fr: [
+            "Appui à la définition des unités de traitement",
+            "Analyse de variantes techniques et des besoins en essais",
+            "Coordination avec laboratoires et spécialistes des procédés",
+          ],
+          en: [
+            "Support in defining processing units",
+            "Analysis of technical variants and testing needs",
+            "Coordination with laboratories and process specialists",
+          ],
+          ar: [
+            "الدعم في تحديد وحدات المعالجة",
+            "تحليل البدائل التقنية واحتياجات الاختبارات",
+            "التنسيق مع المخابر ومختصي المسارات الصناعية",
+          ],
+        },
       },
       {
-        title: "Carrières et matériaux",
-        items: [
-          "Reconnaissance et caractérisation des matériaux",
-          "Études de carrières et appui aux infrastructures",
-          "Suivi des volumes, de la stabilité et de la conformité technique",
-        ],
+        title: {
+          fr: "Carrières et matériaux",
+          en: "Quarries and materials",
+          ar: "المقالع والمواد",
+        },
+        items: {
+          fr: [
+            "Reconnaissance et caractérisation des matériaux",
+            "Études de carrières et appui aux infrastructures",
+            "Suivi des volumes, de la stabilité et de la conformité technique",
+          ],
+          en: [
+            "Reconnaissance and characterisation of materials",
+            "Quarry studies and infrastructure support",
+            "Monitoring of volumes, stability and technical compliance",
+          ],
+          ar: [
+            "استطلاع وتوصيف المواد",
+            "دراسات المقالع ودعم البنى التحتية",
+            "متابعة الأحجام والاستقرار والمطابقة التقنية",
+          ],
+        },
       },
     ],
   },
   {
     slug: "sig-teledetection",
     order: 2,
-    title: "SIG et télédétection",
-    tagline: "Voir plus loin, décider plus vite.",
-    summary:
-      "Des données géospatiales fiables pour éclairer vos décisions, sécuriser votre conformité et gagner du temps sur le terrain.",
     icon: "map",
+    translations: {
+      fr: {
+        title: "SIG et télédétection",
+        tagline: "Voir plus loin, décider plus vite.",
+        summary:
+          "Des données géospatiales fiables pour éclairer vos décisions, sécuriser votre conformité et gagner du temps sur le terrain.",
+      },
+      en: {
+        title: "GIS and remote sensing",
+        tagline: "See further, decide faster.",
+        summary:
+          "Reliable geospatial data to inform your decisions, secure your compliance and save time in the field.",
+      },
+      ar: {
+        title: "نظم المعلومات الجغرافية والاستشعار عن بُعد",
+        tagline: "رؤية أبعد، وقرار أسرع.",
+        summary:
+          "بيانات جغرافية مكانية موثوقة لتنوير قراراتكم وتأمين مطابقتكم وكسب الوقت في الميدان.",
+      },
+    },
     blocks: [
       {
-        title: "SIG et bases de données",
-        items: [
-          "Création, gestion, visualisation et analyse de données thématiques et spatiales",
-          "Bases de données géoscientifiques et intégration multi-formats",
-          "Cartographie numérique, tableaux de bord et supports d'aide à la décision",
-        ],
+        title: {
+          fr: "SIG et bases de données",
+          en: "GIS and databases",
+          ar: "نظم المعلومات الجغرافية وقواعد البيانات",
+        },
+        items: {
+          fr: [
+            "Création, gestion, visualisation et analyse de données thématiques et spatiales",
+            "Bases de données géoscientifiques et intégration multi-formats",
+            "Cartographie numérique, tableaux de bord et supports d'aide à la décision",
+          ],
+          en: [
+            "Creation, management, visualisation and analysis of thematic and spatial data",
+            "Geoscience databases and multi-format integration",
+            "Digital mapping, dashboards and decision-support materials",
+          ],
+          ar: [
+            "إنشاء وإدارة وتصور وتحليل البيانات الموضوعية والمكانية",
+            "قواعد بيانات جيولوجية ودمج متعدد الصيغ",
+            "الخرائط الرقمية، لوحات القيادة، ووسائل دعم اتخاذ القرار",
+          ],
+        },
       },
       {
-        title: "Télédétection",
-        items: [
-          "Traitement d'images satellites et aériennes",
-          "Calcul d'indices spectraux et analyses multivariées",
-          "Cartographie des altérations, structures et occupations du sol",
-        ],
+        title: {
+          fr: "Télédétection",
+          en: "Remote sensing",
+          ar: "الاستشعار عن بُعد",
+        },
+        items: {
+          fr: [
+            "Traitement d'images satellites et aériennes",
+            "Calcul d'indices spectraux et analyses multivariées",
+            "Cartographie des altérations, structures et occupations du sol",
+          ],
+          en: [
+            "Satellite and aerial image processing",
+            "Spectral index computation and multivariate analysis",
+            "Mapping of alterations, structures and land cover",
+          ],
+          ar: [
+            "معالجة الصور الفضائية والجوية",
+            "حساب المؤشرات الطيفية والتحليلات متعددة المتغيرات",
+            "رسم خرائط التغيرات والبنى واستخدامات الأراضي",
+          ],
+        },
       },
       {
-        title: "Drone et photogrammétrie",
-        items: [
-          "Orthophotos, modèles numériques de terrain et calcul de volumes",
-          "Cartographie et inspection de sites miniers et d'infrastructures",
-          "Acquisition rapide, même en zones étendues ou difficiles d'accès",
-        ],
+        title: {
+          fr: "Drone et photogrammétrie",
+          en: "Drone and photogrammetry",
+          ar: "الطائرات المسيّرة والتصوير الفوتوغرامتري",
+        },
+        items: {
+          fr: [
+            "Orthophotos, modèles numériques de terrain et calcul de volumes",
+            "Cartographie et inspection de sites miniers et d'infrastructures",
+            "Acquisition rapide, même en zones étendues ou difficiles d'accès",
+          ],
+          en: [
+            "Orthophotos, digital terrain models and volume calculations",
+            "Mapping and inspection of mining sites and infrastructure",
+            "Fast data acquisition, even in extensive or hard-to-reach areas",
+          ],
+          ar: [
+            "الصور المتعامدة، النماذج الرقمية للتضاريس وحساب الأحجام",
+            "رسم الخرائط وتفقد المواقع التعدينية والبنى التحتية",
+            "جمع سريع للبيانات، حتى في المناطق الشاسعة أو الوعرة",
+          ],
+        },
       },
     ],
   },
   {
     slug: "environnement",
     order: 3,
-    title: "Environnement",
-    tagline: "Concilier performance minière et responsabilité environnementale.",
-    summary:
-      "Anticiper les exigences réglementaires et sociales, documenter les impacts réels et sécuriser la conformité de vos opérations — du permis initial à la réhabilitation du site.",
     icon: "leaf",
+    translations: {
+      fr: {
+        title: "Environnement",
+        tagline: "Concilier performance minière et responsabilité environnementale.",
+        summary:
+          "Anticiper les exigences réglementaires et sociales, documenter les impacts réels et sécuriser la conformité de vos opérations — du permis initial à la réhabilitation du site.",
+      },
+      en: {
+        title: "Environment",
+        tagline: "Reconciling mining performance with environmental responsibility.",
+        summary:
+          "Anticipating regulatory and social requirements, documenting real impacts and securing the compliance of your operations — from the initial permit to site rehabilitation.",
+      },
+      ar: {
+        title: "البيئة",
+        tagline: "التوفيق بين الأداء التعديني والمسؤولية البيئية.",
+        summary:
+          "استباق المتطلبات التنظيمية والاجتماعية، وتوثيق الآثار الفعلية، وتأمين مطابقة عملياتكم — من الرخصة الأولية إلى إعادة تأهيل الموقع.",
+      },
+    },
     blocks: [
       {
-        title: "Études et conformité environnementales",
-        items: [
-          "NIES, EIES et plans de gestion environnementale et sociale",
-          "Évaluation des impacts, sites contaminés et déchets miniers",
-          "Consultation des parties prenantes et engagement du public",
-          "Suivi, réhabilitation et conformité réglementaire",
-        ],
+        title: {
+          fr: "Études et conformité environnementales",
+          en: "Environmental studies and compliance",
+          ar: "الدراسات والمطابقة البيئية",
+        },
+        items: {
+          fr: [
+            "NIES, EIES et plans de gestion environnementale et sociale",
+            "Évaluation des impacts, sites contaminés et déchets miniers",
+            "Consultation des parties prenantes et engagement du public",
+            "Suivi, réhabilitation et conformité réglementaire",
+          ],
+          en: [
+            "Environmental and social impact notices (NIES) and studies (ESIA), and environmental and social management plans",
+            "Impact assessment, contaminated sites and mining waste",
+            "Stakeholder consultation and public engagement",
+            "Monitoring, rehabilitation and regulatory compliance",
+          ],
+          ar: [
+            "مذكرات وتقارير التأثير البيئي والاجتماعي (NIES وEIES) وخطط الإدارة البيئية والاجتماعية",
+            "تقييم الآثار، المواقع الملوثة والنفايات التعدينية",
+            "استشارة أصحاب المصلحة والتواصل مع الجمهور",
+            "المتابعة، إعادة التأهيل والمطابقة التنظيمية",
+          ],
+        },
       },
     ],
   },
   {
     slug: "formation-renforcement-capacites",
     order: 4,
-    title: "Formation et renforcement de capacités",
-    tagline: "Transmettre l'expertise, renforcer vos équipes.",
-    summary:
-      "Des programmes pratiques, construits autour de vos besoins réels et des données de vos propres projets.",
     icon: "graduation-cap",
+    translations: {
+      fr: {
+        title: "Formation et renforcement de capacités",
+        tagline: "Transmettre l'expertise, renforcer vos équipes.",
+        summary:
+          "Des programmes pratiques, construits autour de vos besoins réels et des données de vos propres projets.",
+      },
+      en: {
+        title: "Training and capacity building",
+        tagline: "Passing on expertise, strengthening your teams.",
+        summary:
+          "Practical programmes, built around your real needs and the data from your own projects.",
+      },
+      ar: {
+        title: "التكوين وتعزيز القدرات",
+        tagline: "نقل الخبرة، وتعزيز فرقكم.",
+        summary:
+          "برامج عملية، مصممة وفق احتياجاتكم الفعلية وبيانات مشاريعكم الخاصة.",
+      },
+    },
     blocks: [
       {
-        title: "Exploration minière",
-        items: [
-          "Principes fondamentaux de l'exploration",
-          "Méthodes d'échantillonnage roche, sol et sédiments",
-          "Gestion des programmes de forage RC et DD",
-        ],
+        title: {
+          fr: "Exploration minière",
+          en: "Mining exploration",
+          ar: "الاستكشاف التعديني",
+        },
+        items: {
+          fr: [
+            "Principes fondamentaux de l'exploration",
+            "Méthodes d'échantillonnage roche, sol et sédiments",
+            "Gestion des programmes de forage RC et DD",
+          ],
+          en: [
+            "Fundamental principles of exploration",
+            "Rock, soil and sediment sampling methods",
+            "Management of RC and DD drilling programmes",
+          ],
+          ar: [
+            "المبادئ الأساسية للاستكشاف",
+            "طرق أخذ العينات من الصخور والتربة والرواسب",
+            "إدارة برامج الحفر بطريقتي RC وDD",
+          ],
+        },
       },
       {
-        title: "SIG et télédétection",
-        items: [
-          "ArcGIS, QGIS et gestion de bases de données spatiales",
-          "Traitement et interprétation d'images",
-          "Cartographie thématique et production de livrables",
-        ],
+        title: {
+          fr: "SIG et télédétection",
+          en: "GIS and remote sensing",
+          ar: "نظم المعلومات الجغرافية والاستشعار عن بُعد",
+        },
+        items: {
+          fr: [
+            "ArcGIS, QGIS et gestion de bases de données spatiales",
+            "Traitement et interprétation d'images",
+            "Cartographie thématique et production de livrables",
+          ],
+          en: [
+            "ArcGIS, QGIS and spatial database management",
+            "Image processing and interpretation",
+            "Thematic mapping and deliverables production",
+          ],
+          ar: [
+            "ArcGIS وQGIS وإدارة قواعد البيانات المكانية",
+            "معالجة الصور وتفسيرها",
+            "رسم الخرائط الموضوعية وإعداد المخرجات",
+          ],
+        },
       },
       {
-        title: "Modélisation et estimation des ressources",
-        items: [
-          "Bases de la géostatistique",
-          "Construction de modèles géologiques 3D",
-          "Estimation des ressources et contrôle qualité",
-        ],
+        title: {
+          fr: "Modélisation et estimation des ressources",
+          en: "Modelling and resource estimation",
+          ar: "النمذجة وتقدير الموارد",
+        },
+        items: {
+          fr: [
+            "Bases de la géostatistique",
+            "Construction de modèles géologiques 3D",
+            "Estimation des ressources et contrôle qualité",
+          ],
+          en: [
+            "Fundamentals of geostatistics",
+            "Building 3D geological models",
+            "Resource estimation and quality control",
+          ],
+          ar: [
+            "أساسيات الإحصاء الجيولوجي",
+            "بناء النماذج الجيولوجية ثلاثية الأبعاد",
+            "تقدير الموارد ومراقبة الجودة",
+          ],
+        },
       },
       {
-        title: "Gestion de projets miniers",
-        items: [
-          "Planification, suivi de mission et reporting",
-          "HSE, traçabilité et QA/QC",
-          "Appui à la prise de décision et transfert de compétences",
-        ],
+        title: {
+          fr: "Gestion de projets miniers",
+          en: "Mining project management",
+          ar: "إدارة المشاريع التعدينية",
+        },
+        items: {
+          fr: [
+            "Planification, suivi de mission et reporting",
+            "HSE, traçabilité et QA/QC",
+            "Appui à la prise de décision et transfert de compétences",
+          ],
+          en: [
+            "Planning, mission tracking and reporting",
+            "HSE, traceability and QA/QC",
+            "Decision-support and skills transfer",
+          ],
+          ar: [
+            "التخطيط، متابعة المهام وإعداد التقارير",
+            "الصحة والسلامة والبيئة، التتبع ومراقبة الجودة",
+            "دعم اتخاذ القرار ونقل الكفاءات",
+          ],
+        },
       },
       {
-        title: "Notre pédagogie",
-        items: [
-          "Cours ciblés, études de cas, démonstrations, ateliers pratiques, exercices sur données réelles et accompagnement post-formation — pour une montée en compétence durable, pas seulement théorique.",
-        ],
+        title: {
+          fr: "Notre pédagogie",
+          en: "Our teaching approach",
+          ar: "منهجيتنا التعليمية",
+        },
+        items: {
+          fr: [
+            "Cours ciblés, études de cas, démonstrations, ateliers pratiques, exercices sur données réelles et accompagnement post-formation — pour une montée en compétence durable, pas seulement théorique.",
+          ],
+          en: [
+            "Targeted lessons, case studies, demonstrations, hands-on workshops, exercises on real data and post-training follow-up — for lasting, not merely theoretical, skills development.",
+          ],
+          ar: [
+            "دروس مركّزة، دراسات حالة، عروض توضيحية، ورشات عمل تطبيقية، تمارين على بيانات حقيقية، ومواكبة بعد التكوين — لبناء كفاءة مستدامة لا نظرية فقط.",
+          ],
+        },
       },
       {
-        title: "Pour qui",
-        items: [
-          "Géologues, ingénieurs des mines, techniciens, prospecteurs, petits exploitants, cadres de sociétés minières et agents d'institutions publiques.",
-        ],
+        title: {
+          fr: "Pour qui",
+          en: "Who it's for",
+          ar: "لمن هذا التكوين",
+        },
+        items: {
+          fr: [
+            "Géologues, ingénieurs des mines, techniciens, prospecteurs, petits exploitants, cadres de sociétés minières et agents d'institutions publiques.",
+          ],
+          en: [
+            "Geologists, mining engineers, technicians, prospectors, small-scale operators, mining company managers and public institution staff.",
+          ],
+          ar: [
+            "الجيولوجيون، مهندسو المناجم، التقنيون، المنقّبون، صغار المستغلين، إطارات الشركات التعدينية وموظفو المؤسسات العمومية.",
+          ],
+        },
       },
     ],
   },
@@ -585,17 +1033,20 @@ async function seedServices() {
       update: { order: service.order, icon: service.icon },
     });
 
-    await db.serviceTranslation.upsert({
-      where: { serviceId_locale: { serviceId: record.id, locale: Locale.FR } },
-      create: {
-        serviceId: record.id,
-        locale: Locale.FR,
-        title: service.title,
-        tagline: service.tagline,
-        summary: service.summary,
-      },
-      update: { title: service.title, tagline: service.tagline, summary: service.summary },
-    });
+    for (const locale of [Locale.FR, Locale.EN, Locale.AR]) {
+      const t = service.translations[locale.toLowerCase() as "fr" | "en" | "ar"];
+      await db.serviceTranslation.upsert({
+        where: { serviceId_locale: { serviceId: record.id, locale } },
+        create: {
+          serviceId: record.id,
+          locale,
+          title: t.title,
+          tagline: t.tagline,
+          summary: t.summary,
+        },
+        update: { title: t.title, tagline: t.tagline, summary: t.summary },
+      });
+    }
 
     // No stable natural key on ServiceBlock: replace the set on every run.
     await db.$transaction([
@@ -603,8 +1054,8 @@ async function seedServices() {
       db.serviceBlock.createMany({
         data: service.blocks.map((block, index) => ({
           serviceId: record.id,
-          title: block.title,
-          items: block.items,
+          title: block.title as Prisma.InputJsonValue,
+          items: block.items as Prisma.InputJsonValue,
           order: index,
         })),
       }),

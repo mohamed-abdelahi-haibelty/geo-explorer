@@ -333,8 +333,8 @@ model ServiceTranslation {
 model ServiceBlock {
   id        String   @id @default(cuid())
   serviceId String
-  title     String // « Planification et terrain »
-  items     String[] // les puces
+  title     Json // LocalizedText ({fr,en?,ar?}) — « Planification et terrain »
+  items     Json // { fr: string[], en?: string[], ar?: string[] } — count may differ per locale
   order     Int      @default(0)
   service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
@@ -379,6 +379,8 @@ model SiteSetting {
   companyName       String   @default("GeoExplorer Services")
   tagline           String?
   address           String?
+  latitude          Float?
+  longitude         Float?
   phones            String[]
   email             String?
   siteUrl           String?
@@ -401,6 +403,7 @@ model ContactMessage {
   projectType String?
   message     String        @db.Text
   status      ContactStatus @default(NEW)
+  locale      Locale        @default(FR) // langue du visiteur, pour répondre dans la bonne langue
   ipHash      String? // haché, pas d'IP en clair
   userAgent   String?
   emailSent   Boolean       @default(false)
