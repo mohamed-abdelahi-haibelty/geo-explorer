@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // CJS by necessity — next.config.ts's cacheHandlers resolves it via
+    // require.resolve() before the app's own TS/ESM build pipeline runs.
+    "cache-handlers/**",
   ]),
 ]);
 

@@ -1,0 +1,68 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      # generateStaticParams queries the DB for real during `next build`
+      # (see Dockerfile) — host networking lets the build reach the `db`
+      # service published below at localhost:5432. Requires migrations to
+      # already be applied (run `prisma migrate deploy` before building —
+      # see the README's production deploy section for the exact commands).
+      network: host
+      args:
+        NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:?set it in docker/.env}
+        DATABASE_URL: postgresql://${POSTGRES_USER:-geoexplorer}:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in docker/.env}@localhost:5432/${POSTGRES_DB:-geoexplorer}
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # "use cache" entries also persist to the real Upstash Redis instance
+      # (next.config.ts's cacheHandlers), but this volume is what lets a
+      # restart skip re-priming the local disk cache from cold.
+      - nextcache:/app/.next/cache
+    expose:
+      - "3000"
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-geoexplorer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in docker/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-geoexplorer}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-geoexplorer}"]
+      interval: 10s
+      retries: 5
+    # No published port: the build step still reaches Postgres via
+    # `--network host` at build time (see `app.build.network` above); once
+    # the containers are running, `app` and `db` share this Compose
+    # network, so no host-facing port is needed.
+
+  # Rate limiting (@upstash/ratelimit) and the ISR cache handler both point
+  # at a real Upstash Redis instance via UPSTASH_REDIS_REST_URL /
+  # UPSTASH_REDIS_REST_TOKEN in ../.env — no local Redis container.
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  nextcache:
+  caddy_data:
+  caddy_config:
