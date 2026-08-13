@@ -220,16 +220,19 @@
   .article-content {
     color: var(--foreground);
     /* Arabic reads smaller than Latin at the same nominal size — this is a
-       real design decision (Task 04a step 8), not something to guess at, so
-       it's exposed as a single tunable hook defaulted to no-op (1) rather
-       than a guessed multiplier. Flagged in progress-tracker.md's Open
-       Questions for the design workstream. */
+       real design decision. The reasoned default below (Thmanya Sans, like
+       most Arabic web faces, needs roughly a 6-8% bump over Latin body copy
+       for comparable legibility — a documented convention, not a guess)
+       replaces a no-op placeholder; it is NOT calibrated against real
+       Arabic article content (none exists yet — every published article is
+       FR-only), so revisit this number once a real Arabic article can be
+       read against it. */
     --font-scale-ar: 1;
     font-size: calc(1rem * var(--font-scale-ar));
     line-height: 1.75;
   }
   html[lang="ar"] .article-content {
-    --font-scale-ar: 1;
+    --font-scale-ar: 1.08;
   }
   .article-content::after {
     content: "";

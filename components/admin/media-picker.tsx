@@ -28,8 +28,8 @@ const TYPE_OPTIONS = [
   { value: "RAW", label: "PDF" },
 ];
 
-// The only sanctioned media entry point later tasks use to attach a cover,
-// hero, logo, photo or gallery item — see architecture-full.md §6.
+// The only sanctioned media entry point used to attach a cover,
+// hero, logo, photo or gallery item.
 export function MediaPicker({
   trigger,
   multiple = false,

@@ -9,7 +9,7 @@ const intlMiddleware = createMiddleware(routing);
 
 // Cheap, cookie-presence-only check to block early and avoid a flash of
 // protected content. The real session lookup lives in the (admin) layout,
-// and every Server Action re-checks independently — see architecture.md.
+// and every Server Action re-checks independently.
 function adminGuard(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 

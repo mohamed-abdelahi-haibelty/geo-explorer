@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Single whitelisted folder for now — see architecture-full.md §6. Extend this
+// Single whitelisted folder for now. Extend this
 // list (and the Cloudinary account's folder structure) if subfolders are ever needed.
 export const ALLOWED_FOLDERS = ["geoexplorer"] as const;
 export const CLOUDINARY_RESOURCE_TYPES = ["image", "video", "raw"] as const;

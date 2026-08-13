@@ -8,10 +8,9 @@ import type { LocaleCode } from "@/lib/validation/locale";
 const TITLE_MAX = 70;
 const DESCRIPTION_MAX = 320;
 
-// Shared by the article and news forms (Task 05 step 1: "extract shared
-// form/list pieces if the duplication is more than superficial") — nothing
-// here was ever article-specific except the id prefix and the breadcrumb's
-// URL segment, both now parameters.
+// Shared by the article and news forms, extracted because the duplication
+// was more than superficial — nothing here was ever article-specific except
+// the id prefix and the breadcrumb's URL segment, both now parameters.
 export function SeoPanel({
   idPrefix,
   section,

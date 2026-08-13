@@ -14,8 +14,7 @@ const loginSchema = z.object({
 });
 
 // One message for wrong password and unknown email only — no user
-// enumeration on credential checks. See error-handling.md
-// "Security-Sensitive Messaging". Validation and rate-limiting get their
+// enumeration on credential checks. Validation and rate-limiting get their
 // own distinct messages: neither leaks whether an account exists.
 const UNIFORM_ERROR = "Adresse e-mail ou mot de passe incorrect.";
 const VALIDATION_ERROR = "Veuillez renseigner une adresse e-mail valide et un mot de passe.";

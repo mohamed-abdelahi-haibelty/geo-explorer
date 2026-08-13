@@ -8,7 +8,7 @@ import { computeReadingTime } from "@/lib/reading-time";
 // Explicit allow-list — anything not named here is stripped, regardless of
 // what the editor's own schema would otherwise permit. `renderToHTMLString`
 // only ever emits tags the configured extensions produce, but this is the
-// second, independent gate error-handling.md and Task 04 step 1 both call for.
+// second, independent gate defense-in-depth calls for.
 const ALLOWED_TAGS = [
   "p",
   "br",

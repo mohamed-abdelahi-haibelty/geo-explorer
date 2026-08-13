@@ -12,7 +12,7 @@ export async function getDashboardCounts() {
 
   // Counts translations (article×locale pairs), not articles — an article
   // published in FR and drafted in EN counts once in each tile, which is the
-  // more useful number now that publish state is per locale (Task 04a).
+  // more useful number now that publish state is per locale.
   const [publishedArticles, draftArticles, newsCount, unreadMessages] = await Promise.all([
     db.articleTranslation.count({ where: { status: PublishStatus.PUBLISHED } }),
     db.articleTranslation.count({ where: { status: PublishStatus.DRAFT } }),

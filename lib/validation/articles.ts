@@ -11,8 +11,8 @@ const jsonContentSchema = z.custom<JSONContent>(
   { message: "Contenu invalide." },
 );
 
-// Per-translation fields — one locale's worth (Task 04a: "Fields move to
-// ArticleTranslation").
+// Per-translation fields — one locale's worth (fields that live on
+// ArticleTranslation).
 const translatableArticleFields = {
   locale: localeSchema,
   title: z.string().trim().min(3, "Le titre doit contenir au moins 3 caractères.").max(200),
@@ -25,8 +25,8 @@ const translatableArticleFields = {
 };
 
 // Locale-independent fields — live on the parent Article, edited once
-// regardless of which locale tab is active (Task 04a: "cover, authors, tags
-// and PDF stay outside the tabs"). Resubmitted on every translation save.
+// regardless of which locale tab is active (cover, authors, tags
+// and PDF stay outside the tabs). Resubmitted on every translation save.
 const sharedArticleFields = {
   coverId: z.string().min(1).optional(),
   pdfUrl: z.url().optional(),
@@ -52,8 +52,8 @@ export const createArticleTranslationSchema = z.object({
 export const updateArticleSchema = z.object({
   translationId: z.string().min(1),
   // ISO timestamp of the translation row as last seen by this client — the
-  // concurrent-edit guard compares it against the stored row (Task 04 step 9,
-  // scoped to ArticleTranslation.updatedAt per Task 04a).
+  // concurrent-edit guard compares it against the stored row, scoped to
+  // ArticleTranslation.updatedAt.
   updatedAt: z.string().min(1),
   force: z.boolean().optional(),
   ...translatableArticleFields,

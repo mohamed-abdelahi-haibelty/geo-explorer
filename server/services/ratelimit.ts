@@ -9,7 +9,7 @@ const redis = new Redis({
 
 // Keyed on IP and on email independently — an attacker distributing attempts
 // across IPs still hits the email bucket, and one address can't lock out
-// the admin by hammering a single IP. See architecture-full.md §8.
+// the admin by hammering a single IP.
 export const loginLimiter = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(5, "15 m"),

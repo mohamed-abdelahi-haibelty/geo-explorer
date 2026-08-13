@@ -2,11 +2,11 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { env } from "@/server/env";
 import { LOCALES, type LocaleCode } from "@/lib/validation/locale";
 
-// "Short-lived" per architecture-full.md §11 point 3 — long enough to open
-// the link and read the draft, short enough that a leaked link goes stale fast.
+// "Short-lived" — long enough to open the link and read the draft, short
+// enough that a leaked link goes stale fast.
 const TOKEN_TTL_MS = 15 * 60 * 1000;
 
-// Locale (Task 04a) — a preview link previews one specific translation, not
+// Locale-scoped — a preview link previews one specific translation, not
 // "the article" in the abstract; publish state and content both differ per
 // locale, so the token has to say which one.
 type PreviewPayload = { id: string; type: "article"; locale: LocaleCode; exp: number };

@@ -13,10 +13,10 @@ import { Prisma } from "@/prisma/generated/client";
 import type { Author } from "@/prisma/generated/client";
 
 // title_fr/title_en/title_ar (and bio_*) — six flat named inputs rather than
-// a JSON-stringified hidden field (Task 04a's decision for this dialog:
-// individually inspectable, and the Zod schema below validates plain
-// optional strings instead of parsing an opaque blob). fr absent ⇒ the
-// whole field is treated as unset, matching "no title/bio at all".
+// a JSON-stringified hidden field, chosen for this dialog to keep each value
+// individually inspectable; the Zod schema below validates plain optional
+// strings instead of parsing an opaque blob. fr absent ⇒ the whole field is
+// treated as unset, matching "no title/bio at all".
 function localizedFromFormData(formData: FormData, key: string): { fr: string; en?: string; ar?: string } | undefined {
   const fr = String(formData.get(`${key}_fr`) ?? "").trim();
   if (!fr) return undefined;

@@ -14,8 +14,8 @@ function parseLocale(value: string | undefined): LocaleCode {
 }
 
 // draftMode() and searchParams are request-time reads — Cache Components
-// requires them inside a Suspense boundary (same rule Task 02's AdminGate
-// follows for headers()/cookies()).
+// requires them inside a Suspense boundary (same rule AdminGate follows
+// for headers()/cookies()).
 async function PreviewContent({
   params,
   searchParams,
@@ -90,7 +90,7 @@ async function PreviewContent({
 
 // Reached only via the signed link from app/apercu/[token]/route.ts, which
 // sets the Draft Mode bypass cookie PreviewContent's check relies on — never
-// served from the public cache (architecture-full.md §11 point 3).
+// served from the public cache.
 export default function ArticlePreviewPage({
   params,
   searchParams,

@@ -13,7 +13,7 @@ import { slugify } from "@/lib/slug";
 
 // Widths cover the sticky-ToC desktop reading column down to a single mobile
 // column; article covers use a different set (media picker), this is body
-// content only. See architecture-full.md §5 ("Inline images"). Exported so
+// content (inline images) only. Exported so
 // the client-only NodeView (image-node-view.tsx) can build an identical
 // srcset for the live editing view without duplicating the width list.
 export const RESPONSIVE_WIDTHS = [480, 768, 1024, 1600, 2400];
@@ -35,8 +35,8 @@ function widthPercentClass(widthPercent: unknown): ImageWidthPercent {
   return (WIDTH_PERCENT_VALUES as readonly number[]).includes(n) ? (n as ImageWidthPercent) : 100;
 }
 
-// Extends the stock Image node with the fields architecture-full.md §5 says
-// the JSON must carry (`publicId`, `width`, `height`) and renders a
+// Extends the stock Image node with the fields the stored JSON must carry
+// (`publicId`, `width`, `height`) and renders a
 // `srcset`/`sizes` `<img>` from them at save time — the "responsive markup"
 // step of the content pipeline lives here rather than as a post-process pass,
 // since generateHTML already calls each node's own renderHTML. `align` and
@@ -119,8 +119,7 @@ export function createEditorExtensions({
   return [
     StarterKit.configure({
       // The article title is the page's h1 (rendered outside the editor) —
-      // body headings start at h2 to keep one h1 per page (error-handling.md /
-      // architecture-full.md §13).
+      // body headings start at h2 to keep one h1 per page.
       heading: { levels: [2, 3, 4] },
       link: {
         openOnClick: false,

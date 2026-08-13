@@ -24,11 +24,10 @@ const LOCALE_LABELS: Record<LocaleCode, string> = { fr: "FR", en: "EN", ar: "AR"
 
 // Ordered gallery — position is array index at save time (same rule
 // ArticleAuthorsPicker's ordered multi-select follows). Reordering combines a
-// native HTML5 drag handle (step 4's "drag-to-reorder") with up/down buttons,
-// since drag alone isn't keyboard-operable (code-standards.md). Captions are
-// locale-keyed (Task 05 step 0), so this component reads/writes only the
-// currently active locale tab's value while the list itself — which media,
-// what order — stays shared across every locale.
+// native HTML5 drag handle with up/down buttons, since drag alone isn't
+// keyboard-operable. Captions are locale-keyed, so this component
+// reads/writes only the currently active locale tab's value while the list
+// itself — which media, what order — stays shared across every locale.
 export function NewsGalleryEditor({
   value,
   activeLocale,

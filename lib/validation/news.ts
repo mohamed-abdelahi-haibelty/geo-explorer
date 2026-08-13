@@ -11,9 +11,9 @@ const jsonContentSchema = z.custom<JSONContent>(
   { message: "Contenu invalide." },
 );
 
-// Step 5: "validate the host" — free-tier Cloudinary credits are the reason
-// video has a fallback at all (see architecture decisions), so the fallback
-// itself is restricted to the two hosts that reliably embed for free.
+// Free-tier Cloudinary credits are the reason video has a fallback at all,
+// so the fallback itself is restricted to the two hosts that reliably embed
+// for free.
 const ALLOWED_VIDEO_HOSTS = ["youtube.com", "www.youtube.com", "youtu.be", "vimeo.com", "www.vimeo.com"];
 
 const externalVideoUrlSchema = z.url().refine(
@@ -39,7 +39,7 @@ const translatableNewsFields = {
   metaDescription: z.string().trim().max(320).optional(),
 };
 
-// Reader-facing, so locale-keyed (Task 05 step 0) — unlike `position`, which
+// Reader-facing, so locale-keyed — unlike `position`, which
 // is structural and shared across every locale.
 const galleryCaptionSchema = z
   .object({
@@ -55,7 +55,7 @@ const galleryItemSchema = z.object({
 });
 
 // Locale-independent fields — live on the parent News, edited once regardless
-// of which locale tab is active (Task 05 step 0, mirroring Task 04a's rule
+// of which locale tab is active (mirroring the same rule
 // for Article's cover/authors/tags). `position` is derived from array order
 // at the action layer, not carried in the payload — same rule
 // resolveTagIds/authorIds already follow for Article.
@@ -80,8 +80,8 @@ export const createNewsTranslationSchema = z.object({
 
 export const updateNewsSchema = z.object({
   translationId: z.string().min(1),
-  // Concurrent-edit guard (Task 05 step 7, scoped to NewsTranslation.updatedAt
-  // exactly like ArticleTranslation in Task 04/04a).
+  // Concurrent-edit guard, scoped to NewsTranslation.updatedAt
+  // exactly like ArticleTranslation.
   updatedAt: z.string().min(1),
   force: z.boolean().optional(),
   ...translatableNewsFields,

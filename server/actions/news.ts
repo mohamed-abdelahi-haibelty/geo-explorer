@@ -33,9 +33,9 @@ type SavedTranslation = {
 type GalleryInput = { mediaId: string; caption: Record<string, string | undefined> }[];
 
 // Full replace, ordered by array index — same rule Article's authors/tags
-// follow (Task 04a step 10: shared fields are resubmitted on every
-// translation save). Runs inside the caller's transaction so a
-// half-replaced gallery never becomes visible.
+// follow (shared fields are resubmitted on every translation save). Runs
+// inside the caller's transaction so a half-replaced gallery never becomes
+// visible.
 function replaceGallery(tx: Prisma.TransactionClient, newsId: string, media: GalleryInput) {
   return Promise.all([
     tx.newsMedia.deleteMany({ where: { newsId } }),
@@ -202,9 +202,9 @@ export async function updateNewsAction(input: unknown): Promise<ActionResult<Sav
     });
     if (!existing) throw new AppError("NOT_FOUND", "Actualité introuvable.");
 
-    // Concurrent-edit guard (Task 05 step 7), scoped to the translation row —
-    // identical shape to updateArticleAction so the client's conflict UI is
-    // the same code path for both entities.
+    // Concurrent-edit guard, scoped to the translation row — identical shape
+    // to updateArticleAction so the client's conflict UI is the same code
+    // path for both entities.
     if (!data.force && existing.updatedAt.toISOString() !== data.updatedAt) {
       throw new AppError("CONFLICT", "Cette actualité a été modifiée ailleurs depuis son chargement.", {
         updatedAt: existing.updatedAt.toISOString(),
@@ -347,8 +347,7 @@ export async function deleteNewsAction(newsId: string): Promise<ActionResult<nul
 
     // NewsMedia rows are ON DELETE CASCADE (schema) — the gallery join table
     // disappears with the news item, but MediaAsset rows themselves are
-    // untouched (Task 05's own "deleting a news item leaves its MediaAsset
-    // rows intact" requirement).
+    // untouched (deleting a news item must leave its MediaAsset rows intact).
     await db.news.delete({ where: { id: parsed.data.newsId } });
 
     updateTag(TAGS.news);

@@ -31,10 +31,10 @@ type SavedTranslation = {
   status: string;
 };
 
-// "Select existing or create by name" (Task 04 step 4) — a name that already
-// exists on the Tag table is reused, everything else becomes a new row.
-// `name` is locale-keyed JSON (Task 04a); the admin always works in French
-// here (see architecture.md's storage-strategy table and tag-picker.tsx).
+// "Select existing or create by name" — a name that already exists on the
+// Tag table is reused, everything else becomes a new row. `name` is
+// locale-keyed JSON; the admin always works in French here (see
+// tag-picker.tsx).
 async function resolveTagIds(tagNames: string[]): Promise<string[]> {
   const uniqueNames = Array.from(new Set(tagNames.map((name) => name.trim()).filter(Boolean)));
   const ids: string[] = [];
@@ -120,7 +120,7 @@ export async function createArticleAction(input: unknown): Promise<ActionResult<
 // Fills a previously-empty locale tab on an existing article. Shared fields
 // (cover/pdf/authors/tags/featured) are re-written on the parent here too —
 // the form always submits their current state regardless of which tab is
-// being saved (Task 04a step 10).
+// being saved.
 export async function createArticleTranslationAction(input: unknown): Promise<ActionResult<SavedTranslation>> {
   return runAction(async () => {
     const parsed = createArticleTranslationSchema.safeParse(input);
@@ -211,11 +211,11 @@ export async function updateArticleAction(input: unknown): Promise<ActionResult<
     });
     if (!existing) throw new AppError("NOT_FOUND", "Article introuvable.");
 
-    // Concurrent-edit guard (Task 04 step 9, scoped to the translation row
-    // per Task 04a): the stored row moved on since this client last loaded
-    // it and the caller didn't explicitly choose to overwrite — refuse the
-    // write. The newer timestamp rides in `fields` so the UI can offer
-    // "reload" without a second round trip. Shape kept identical to Task 04.
+    // Concurrent-edit guard, scoped to the translation row: the stored row
+    // moved on since this client last loaded it and the caller didn't
+    // explicitly choose to overwrite — refuse the write. The newer
+    // timestamp rides in `fields` so the UI can offer "reload" without a
+    // second round trip.
     if (!data.force && existing.updatedAt.toISOString() !== data.updatedAt) {
       throw new AppError("CONFLICT", "Cet article a été modifié ailleurs depuis son chargement.", {
         updatedAt: existing.updatedAt.toISOString(),

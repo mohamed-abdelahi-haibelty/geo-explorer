@@ -146,7 +146,7 @@ export function ArticleForm({
   const [publishing, setPublishing] = useState(false);
 
   // Locale-independent — cover, PDF, authors, tags, featured — edited once
-  // regardless of which locale tab is active (Task 04a step 10).
+  // regardless of which locale tab is active.
   const [cover, setCover] = useState<MediaAsset | null>(article?.cover ?? null);
   const [pdf, setPdf] = useState<{ url: string; bytes: number } | null>(
     article?.pdfUrl ? { url: article.pdfUrl, bytes: article.pdfBytes ?? 0 } : null,
@@ -244,8 +244,8 @@ export function ArticleForm({
   }
 
   // Three independent 30s-debounce autosave timers, one per locale — a dirty
-  // EN tab keeps counting down even while the admin is looking at FR
-  // (Task 04a step 10). Unrolled per-locale rather than a loop: the set of
+  // EN tab keeps counting down even while the admin is looking at FR.
+  // Unrolled per-locale rather than a loop: the set of
   // locales is fixed, so three static hook call sites are exactly as valid
   // as one, and each effect's dependency array stays precise.
   useEffect(() => {

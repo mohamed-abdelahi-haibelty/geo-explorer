@@ -13,7 +13,7 @@ export type AuthorLite = {
   photo: { publicId: string; blurDataUrl: string | null } | null;
 };
 
-// "Ordered multi-select" (Task 04 step 7) — position is the array index,
+// An ordered multi-select — position is the array index,
 // submitted as-is; the article actions write it straight to ArticleAuthor.position.
 export function ArticleAuthorsPicker({
   value,

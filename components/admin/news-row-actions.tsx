@@ -29,8 +29,8 @@ import type { Locale as PrismaLocale, PublishStatus } from "@/prisma/generated/c
 
 const LOCALE_LABEL: Record<PrismaLocale, string> = { FR: "FR", EN: "EN", AR: "AR" };
 
-// No preview action — unlike articles, news has no draft-preview route
-// (out of Task 05's scope; Task 08 owns public news pages).
+// No preview action — unlike articles, news has no draft-preview route;
+// public news pages are handled elsewhere.
 export function NewsRowActions({
   newsId,
   title,

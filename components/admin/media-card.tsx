@@ -17,8 +17,8 @@ import type { MediaAsset } from "@/prisma/generated/client";
 
 const TYPE_LABEL: Record<MediaAsset["type"], string> = { IMAGE: "Image", VIDEO: "Vidéo", RAW: "PDF" };
 
-// alt/caption are locale-keyed JSON (Task 04a); the admin's own working
-// language is French — see architecture.md's storage-strategy table.
+// alt/caption are locale-keyed JSON; the admin's own working
+// language is French.
 function frText(value: unknown): string {
   return pickLocalizedText(value, "fr");
 }

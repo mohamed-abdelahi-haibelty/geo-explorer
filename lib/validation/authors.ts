@@ -4,10 +4,9 @@ import { localizedTextSchema } from "@/lib/validation/locale";
 // Matches the `author_slug_format` CHECK constraint (prisma/migrations/20260801130500_raw_sql_constraints).
 const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-// title/bio are locale-keyed JSON (Task 04a) — {fr, en?, ar?}. Optional as a
+// title/bio are locale-keyed JSON — {fr, en?, ar?}. Optional as a
 // whole (an author can have no title/bio at all), but if present, fr is
-// required — the admin always writes French first (see
-// architecture.md's storage-strategy table).
+// required — the admin always writes French first.
 export const authorInputSchema = z.object({
   name: z.string().trim().min(2, "Le nom est obligatoire.").max(120),
   slug: z

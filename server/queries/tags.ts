@@ -3,9 +3,9 @@ import { db } from "@/server/db";
 import { TAGS, CACHE_PROFILE } from "@/lib/cache-tags";
 
 // No dedicated admin route — Tag rows are only ever browsed and created
-// inline from the article form's tag picker (Task 04 step 4). `name` is
-// locale-keyed JSON (Task 04a) — can't be ordered by in SQL, so this
-// returns slug order and callers sort by their active locale's picked text
+// inline from the article form's tag picker. `name` is locale-keyed JSON —
+// can't be ordered by in SQL, so this returns slug order and callers sort
+// by their active locale's picked text
 // (lib/locale.ts's pickLocalizedText) once they know which locale that is.
 export async function listTags() {
   "use cache";

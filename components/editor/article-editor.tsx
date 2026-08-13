@@ -19,7 +19,7 @@ export type ArticleEditorHandle = {
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
 
 // Loaded exclusively via next/dynamic({ ssr: false }) from the article form —
-// Tiptap must never reach a (site) bundle (code-standards.md).
+// Tiptap must never reach a (site) bundle.
 const ArticleEditor = forwardRef<
   ArticleEditorHandle,
   { initialContent: JSONContent | null; onDirty?: () => void; disabled?: boolean; dir?: "ltr" | "rtl" }

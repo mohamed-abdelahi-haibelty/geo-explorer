@@ -5,7 +5,7 @@ import type { LocaleCode } from "@/lib/validation/locale";
 // variants cover the public surface. Every translation write invalidates
 // both — the flat tag so the admin always sees its own write, the
 // locale-scoped tag(s) so publishing e.g. the Arabic translation never
-// invalidates the French page's cache (Task 04a step 9).
+// invalidates the French page's cache.
 export const TAGS = {
   articles: "articles",
   articleList: (locale: LocaleCode) => `articles:${locale}`,
@@ -23,5 +23,5 @@ export const TAGS = {
   media: "media",
 };
 
-// Content is edited rarely and read often — see architecture-full.md §11.
+// Content is edited rarely and read often.
 export const CACHE_PROFILE = "hours";

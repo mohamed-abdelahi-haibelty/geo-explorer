@@ -21,7 +21,7 @@ export class AppError extends Error {
 }
 
 // Shared by every action with more than one form field — keeps the first
-// message per field so the form can render it inline (error-handling.md).
+// message per field so the form can render it inline.
 export function zodFieldErrors(error: { issues: { path: PropertyKey[]; message: string }[] }): Record<string, string> {
   const fields: Record<string, string> = {};
   for (const issue of error.issues) {

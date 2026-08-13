@@ -33,8 +33,8 @@ async function requestSignature(resourceType: DetectedResourceType): Promise<Sig
   return response.json();
 }
 
-// Direct signed browser → Cloudinary upload, per architecture-full.md §6:
-// the file never transits the Next server. XHR (not fetch) for upload progress.
+// Direct signed browser → Cloudinary upload: the file never transits the
+// Next server. XHR (not fetch) for upload progress.
 export function uploadToCloudinary(
   file: File,
   resourceType: DetectedResourceType,

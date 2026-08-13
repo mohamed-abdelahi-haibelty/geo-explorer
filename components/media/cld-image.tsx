@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 // The only sanctioned way to render a MediaAsset image anywhere in the app —
 // always routes through the Cloudinary loader (f_auto,q_auto,dpr_auto) and
-// the stored blurDataUrl, per architecture-full.md §6.
+// the stored blurDataUrl.
 export function CldImage({
   publicId,
   alt,

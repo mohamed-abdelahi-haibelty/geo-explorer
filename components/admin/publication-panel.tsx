@@ -29,12 +29,12 @@ const LOCALE_LABELS: Record<LocaleCode, string> = { fr: "FR", en: "EN", ar: "AR"
 
 export type LocalePublicationSummary = { status: PublishStatus; translationId: string | null };
 
-// One panel, not three (Task 04a's decision) — a compact per-locale status
+// One panel, not three — a compact per-locale status
 // strip plus the action buttons, which act on whichever locale tab is
-// currently active. Shared by the article and news forms (Task 05 step 1);
+// currently active. Shared by the article and news forms;
 // `extra` is the only entity-specific slot left (article's "mise en avant"
 // switch — news has nothing to put there) and `onPreview` is optional since
-// news has no draft-preview route (out of Task 05's scope, unlike Task 04).
+// news has no draft-preview route, unlike articles.
 export function PublicationPanel({
   entityId,
   entityLabel,

@@ -11,8 +11,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: { code: "UNAUTHENTICATED", message: "Connexion requise." } }, { status: 401 });
   }
 
-  // Fail open: an Upstash outage should not block an authenticated admin from
-  // uploading, per error-handling.md's degradation policy for this limiter.
+  // Fail open: an Upstash outage should not block an authenticated admin
+  // from uploading — that's the degradation policy for this limiter.
   try {
     const { success } = await uploadLimiter.limit(session.user.id);
     if (!success) {

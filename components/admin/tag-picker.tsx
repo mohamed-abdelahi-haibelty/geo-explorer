@@ -21,10 +21,10 @@ import { deleteTagAction, getTagArticleCountAction } from "@/server/actions/tags
 
 type TagSuggestion = { id: string; name: string };
 
-// "Select existing or create by name" (Task 04 step 4) — the picker only ever
+// Select existing or create by name — the picker only ever
 // deals in names. server/actions/articles.ts upserts each name by Tag.name,
 // so a "new" tag and an existing one take the same code path at save time.
-// Deletion (Task 04a follow-up) lives here too, inline in the suggestion
+// Deletion lives here too, inline in the suggestion
 // list, rather than a dedicated /admin/tags route — tags stay a
 // browse-and-manage-inline entity by design.
 export function TagPicker({

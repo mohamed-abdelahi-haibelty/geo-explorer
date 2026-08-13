@@ -2,7 +2,7 @@ import { defineRouting } from "next-intl/routing";
 import { LOCALES, DEFAULT_LOCALE } from "@/lib/validation/locale";
 
 // `localePrefix: "always"` — a prefix on every public URL, including the
-// default locale (`/fr/...`, never bare `/...`), per Task 04a's decision.
+// default locale (`/fr/...`, never bare `/...`).
 // `localeDetection: false` — next-intl's own cookie/Accept-Language sniffing
 // is disabled; proxy.ts implements the exact resolved behavior instead
 // ("cookie-if-set, else fr", never Accept-Language) with a small manual
@@ -18,7 +18,7 @@ export const routing = defineRouting({
   // unconditionally for every URL — correct for structural pages (always
   // exist in all locales, falling back to FR), wrong for publications
   // (Article/News), where a locale with no translation must not be
-  // advertised at all (Task 04a). Per-page <link rel="alternate"> tags via
+  // advertised at all. Per-page <link rel="alternate"> tags via
   // generateMetadata's `alternates.languages`, built from each page's own
   // actual available-locale set, are the single source of truth instead.
   alternateLinks: false,

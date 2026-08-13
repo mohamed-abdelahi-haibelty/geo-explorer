@@ -29,7 +29,7 @@ export function signUploadParams({ folder, resourceType }: { folder: string; res
   };
 }
 
-// Always f_auto,q_auto,dpr_auto per architecture-full.md §6 — never a raw asset URL in markup.
+// Always f_auto,q_auto,dpr_auto — never a raw asset URL in markup.
 export function deliveryUrl(publicId: string, { width }: { width?: number } = {}) {
   return cloudinary.url(publicId, {
     secure: true,
@@ -54,7 +54,7 @@ export function videoPosterUrl(publicId: string) {
 }
 
 // Fetches the tiny w_16,q_10,e_blur derivative and inlines it as a data URI —
-// this is the only binary ever stored in a column, per code-standards.md.
+// this is the only binary ever stored in a column.
 export async function fetchBlurDataUrl(publicId: string): Promise<string | null> {
   try {
     const response = await fetch(lqipUrl(publicId));
@@ -67,8 +67,8 @@ export async function fetchBlurDataUrl(publicId: string): Promise<string | null>
   }
 }
 
-// Degradation policy (error-handling.md): delete the row regardless of this
-// call's outcome; a failure here just orphans the remote asset, logged for cleanup.
+// Degradation policy: delete the row regardless of this call's outcome; a
+// failure here just orphans the remote asset, logged for cleanup.
 export async function destroyAsset(publicId: string, resourceType: CloudinaryResourceType) {
   try {
     await cloudinary.uploader.destroy(publicId, { resource_type: resourceType, invalidate: true });

@@ -139,8 +139,8 @@ export function NewsForm({ news }: { news: NewsForEdit | null }) {
   const [publishing, setPublishing] = useState(false);
 
   // Locale-independent — cover, event date/location, external video,
-  // gallery — edited once regardless of which locale tab is active (Task 05
-  // step 0). Gallery captions are the one exception: shared list, per-locale
+  // gallery — edited once regardless of which locale tab is active. Gallery
+  // captions are the one exception: shared list, per-locale
   // text — see NewsGalleryEditor.
   const [cover, setCover] = useState<MediaAsset | null>(news?.cover ?? null);
   const [eventDate, setEventDate] = useState(toEventDateInput(news?.eventDate ?? null));

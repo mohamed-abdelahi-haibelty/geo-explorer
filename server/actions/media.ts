@@ -20,11 +20,11 @@ import { getMediaUsage, getMediaUsageBatch, listMedia, type MediaUsageItem } fro
 import { Prisma } from "@/prisma/generated/client";
 import type { MediaAsset } from "@/prisma/generated/client";
 
-// alt/caption are locale-keyed JSON (Task 04a), but the media library's
-// upload/edit form is still a single field — out of scope for the tab
-// rework Task 04a applies to article-form.tsx. The single value the admin
-// types becomes the French value, consistent with how Tag/Author labels are
-// written from single-input admin forms elsewhere.
+// alt/caption are locale-keyed JSON, but the media library's upload/edit
+// form is still a single field — out of scope for the tab rework applied to
+// article-form.tsx. The single value the admin types becomes the French
+// value, consistent with how Tag/Author labels are written from
+// single-input admin forms elsewhere.
 function toLocalizedJson(value: string | null | undefined) {
   return value ? { fr: value } : Prisma.DbNull;
 }
@@ -124,8 +124,8 @@ async function destroyMediaAssetRow(id: string, userId: string) {
   });
   if (!asset) throw new AppError("NOT_FOUND", "Média introuvable.");
 
-  // Cloudinary delete degrades independently of the DB row (error-handling.md):
-  // the row is removed either way, an orphaned remote asset is only logged.
+  // Cloudinary delete degrades independently of the DB row: the row is
+  // removed either way, an orphaned remote asset is only logged.
   await destroyAsset(asset.publicId, asset.type.toLowerCase() as "image" | "video" | "raw");
   // FK relations to this asset (cover, hero, logo, photo, gallery) are all
   // ON DELETE SET NULL / CASCADE in the schema — no manual nulling needed.
