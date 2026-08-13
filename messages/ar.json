@@ -18,17 +18,65 @@
     "publishedOn": "نُشر في {date}",
     "byAuthor": "بقلم {name}",
     "tags": "الوسوم",
-    "notAvailableNotice": "هذا المقال غير متوفر بهذه اللغة."
+    "notAvailableNotice": "هذا المقال غير متوفر بهذه اللغة.",
+    "relatedHeading": "مقالات ذات صلة",
+    "tocLabel": "المحتويات",
+    "shareLabel": "مشاركة",
+    "shareLinkedin": "مشاركة على LinkedIn",
+    "shareWhatsapp": "مشاركة على واتساب",
+    "shareEmail": "مشاركة عبر البريد الإلكتروني",
+    "pdfLabel": "الدراسة الكاملة (PDF · {size})"
   },
   "articleIndex": {
     "title": "المقالات",
     "empty": "لا توجد مقالات بعد.",
-    "loadMore": "عرض المزيد من المقالات"
+    "noResults": "لا توجد نتائج لهذا البحث.",
+    "searchPlaceholder": "ابحث عن مقال…",
+    "searchLabel": "البحث في المقالات",
+    "tagsLabel": "تصفية حسب الموضوع",
+    "allTags": "جميع المواضيع"
+  },
+  "pagination": {
+    "previous": "السابق",
+    "next": "التالي"
   },
   "search": {
-    "placeholder": "ابحث عن مقال…",
+    "placeholder": "ابحث عن مقال أو خبر…",
     "resultsFor": "نتائج البحث عن «{query}»",
-    "empty": "لا توجد نتائج."
+    "empty": "لا توجد نتائج.",
+    "submit": "بحث",
+    "kindArticle": "مقال",
+    "kindNews": "خبر"
+  },
+  "newsIndex": {
+    "title": "الأخبار",
+    "empty": "لا توجد أخبار بعد."
+  },
+  "contact": {
+    "detailsHeading": "بيانات التواصل",
+    "fields": {
+      "name": "الاسم الكامل",
+      "namePlaceholder": "اسمكم",
+      "company": "الشركة",
+      "companyPlaceholder": "اسم شركتكم (اختياري)",
+      "email": "البريد الإلكتروني",
+      "emailPlaceholder": "you@example.com",
+      "phone": "الهاتف",
+      "phonePlaceholder": "+222 …",
+      "projectType": "نوع المشروع",
+      "projectTypePlaceholder": "اختر نوع المشروع",
+      "message": "الرسالة",
+      "messagePlaceholder": "صفوا مشروعكم أو احتياجكم…"
+    },
+    "consent": "أوافق على التواصل معي بخصوص طلبي.",
+    "submit": "إرسال الرسالة",
+    "submitting": "جارٍ الإرسال…",
+    "successHeading": "تم إرسال الرسالة",
+    "successBody": "شكرًا لكم، تم استلام رسالتكم. سيتواصل معكم فريقنا في أقرب وقت.",
+    "successReset": "إرسال رسالة أخرى",
+    "errorFallback": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    "mapCta": "عرض الخريطة",
+    "mapLabel": "خريطة موقع GeoExplorer Services"
   },
   "footer": {
     "rights": "جميع الحقوق محفوظة."
@@ -37,5 +85,21 @@
     "title": "الصفحة غير موجودة",
     "description": "المحتوى المطلوب غير موجود أو لم يعد متاحًا.",
     "backHome": "العودة إلى الرئيسية"
+  },
+  "site": {
+    "discover": "اكتشاف",
+    "viewAllServices": "عرض جميع الخدمات",
+    "viewAllArticles": "عرض جميع المقالات",
+    "viewAllNews": "عرض جميع الأخبار",
+    "otherServices": "خدمات أخرى",
+    "partnersHeading": "شركاؤنا",
+    "videoBadge": "فيديو",
+    "requestQuote": "اطلب عرض سعر لهذه الخدمة",
+    "backToServices": "جميع الخدمات",
+    "contactCta": {
+      "heading": "هل لديكم مشروع في علوم الأرض؟",
+      "body": "صفوا لنا احتياجكم باختصار — سنعود إليكم برأي تقني أولي والخطوات التالية.",
+      "button": "لنتحدث"
+    }
   }
 }

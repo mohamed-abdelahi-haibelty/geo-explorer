@@ -4,13 +4,28 @@ import type { Metadata } from "next";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { CldImage } from "@/components/media/cld-image";
 import { ArticlePdfLink } from "@/components/site/article-pdf-link";
+import { AuthorBlock } from "@/components/site/author-block";
+import { TocNav } from "@/components/site/toc-nav";
+import { ShareLinks } from "@/components/site/share-links";
+import { ArticleCard } from "@/components/site/article-card";
+import { ViewCounter } from "@/components/site/view-counter";
+import { SpectralBandRow } from "@/components/site/spectral-bands";
+import { ScrollRevealGroup } from "@/components/site/scroll-reveal";
 import {
   getArticleBySlugForPublic,
   getArticleTranslationBySlugAnyLocale,
   getPublishedLocalesForArticle,
   listPublishedSlugsForStaticParams,
+  listRelatedArticlesPublic,
 } from "@/server/queries/articles";
 import { pickLocalizedText } from "@/lib/locale";
+import { formatDate } from "@/lib/format-date";
+import { formatFileSize } from "@/lib/format-bytes";
+import { extractHeadings } from "@/lib/toc";
+import { getSiteUrl } from "@/lib/site-url";
+import { cloudinaryImageUrl } from "@/lib/cloudinary-url";
+import { buildArticleSchema, buildBreadcrumbSchema, jsonLdGraph, BREADCRUMB_LABELS } from "@/lib/structured-data";
+import { JsonLd } from "@/components/site/json-ld";
 import type { LocaleCode } from "@/lib/validation/locale";
 
 // A plain locale dictionary, not getTranslations()/messages/*.json: this
@@ -18,22 +33,53 @@ import type { LocaleCode } from "@/lib/validation/locale";
 // export below) so redirect()/notFound() can set a real HTTP status, and
 // next-intl's server APIs need the same runtime-data Suspense boundary
 // everything else in this file was rewritten to avoid.
-const READING_TIME_LABEL: Record<LocaleCode, (minutes: number) => string> = {
-  fr: (minutes) => `${minutes} min de lecture`,
-  en: (minutes) => `${minutes} min read`,
-  ar: (minutes) => `${minutes} دقيقة قراءة`,
-};
-
-const BACK_LABEL: Record<LocaleCode, string> = {
-  fr: "Retour aux articles",
-  en: "Back to articles",
-  ar: "العودة إلى المقالات",
-};
-
-const PDF_LABEL: Record<LocaleCode, string> = {
-  fr: "Étude complète (PDF)",
-  en: "Full study (PDF)",
-  ar: "الدراسة الكاملة (PDF)",
+const DICT: Record<
+  LocaleCode,
+  {
+    back: string;
+    readingTime: (minutes: number) => string;
+    pdf: (size: string) => string;
+    toc: string;
+    related: string;
+    share: string;
+    shareLinkedin: string;
+    shareWhatsapp: string;
+    shareEmail: string;
+  }
+> = {
+  fr: {
+    back: "Retour aux articles",
+    readingTime: (m) => `${m} min de lecture`,
+    pdf: (size) => `Étude complète (PDF · ${size})`,
+    toc: "Sommaire",
+    related: "À lire aussi",
+    share: "Partager",
+    shareLinkedin: "Partager sur LinkedIn",
+    shareWhatsapp: "Partager sur WhatsApp",
+    shareEmail: "Partager par e-mail",
+  },
+  en: {
+    back: "Back to articles",
+    readingTime: (m) => `${m} min read`,
+    pdf: (size) => `Full study (PDF · ${size})`,
+    toc: "Contents",
+    related: "Related reading",
+    share: "Share",
+    shareLinkedin: "Share on LinkedIn",
+    shareWhatsapp: "Share on WhatsApp",
+    shareEmail: "Share by email",
+  },
+  ar: {
+    back: "العودة إلى المقالات",
+    readingTime: (m) => `${m} دقيقة قراءة`,
+    pdf: (size) => `الدراسة الكاملة (PDF · ${size})`,
+    toc: "المحتويات",
+    related: "مقالات ذات صلة",
+    share: "مشاركة",
+    shareLinkedin: "مشاركة على LinkedIn",
+    shareWhatsapp: "مشاركة على واتساب",
+    shareEmail: "مشاركة عبر البريد الإلكتروني",
+  },
 };
 
 // Real published slugs, not an empty/dummy list — Cache Components requires
@@ -55,10 +101,10 @@ async function loadArticle(locale: LocaleCode, slug: string) {
   const article = await getArticleBySlugForPublic(locale, slug);
   if (article) return article;
 
-  // Independent publication, never a fallback render (Task 04a): a miss
-  // here means either this locale never had a translation, or it exists but
-  // isn't published — either way, redirect to a locale that actually has
-  // it (FR-preferred), or a genuine 404 if no locale does.
+  // Independent publication, never a fallback render: a miss here means
+  // either this locale never had a translation, or it exists but isn't
+  // published — either way, redirect to a locale that actually has it
+  // (FR-preferred), or a genuine 404 if no locale does.
   const fallback = await getArticleTranslationBySlugAnyLocale(slug);
   if (fallback) redirect(`/${fallback.locale}/articles/${fallback.slug}`);
   notFound();
@@ -74,9 +120,9 @@ export async function generateMetadata({
   if (!article) return {};
 
   // hreflang built from the article's actual published-locale set — never
-  // an entry for a locale this article isn't published in (Task 04a step
-  // 12), reciprocal by construction since every locale's own generateMetadata
-  // runs this same query. x-default points at French, the fallback locale.
+  // an entry for a locale this article isn't published in, reciprocal by
+  // construction since every locale's own generateMetadata runs this same
+  // query. x-default points at French, the fallback locale.
   const availableLocales = await getPublishedLocalesForArticle(article.articleId);
   const languages = Object.fromEntries(availableLocales.map((entry) => [entry.locale, `/${entry.locale}/articles/${entry.slug}`]));
   const frEntry = availableLocales.find((entry) => entry.locale === "fr");
@@ -98,82 +144,156 @@ type PageProps = { params: Promise<{ locale: string; slug: string }> };
 // instead of a real HTTP 307/404 (see next/navigation's redirect() docs —
 // "when used in a streaming context, this will insert a meta tag to emit
 // the redirect on the client side"). The publications-independence rule
-// (Task 04a) requires an actual 307, so this route stays outside Suspense —
+// requires an actual 307, so this route stays outside Suspense —
 // all pages are dynamic by default under Cache Components, so this doesn't
 // need force-dynamic or similar; it just can't defer into a Suspense child.
 export default async function ArticleDetailPage({ params }: PageProps) {
   const { locale, slug } = await params;
   const typedLocale = locale as LocaleCode;
+  const t = DICT[typedLocale];
+  const isRtl = typedLocale === "ar";
   const article = await loadArticle(typedLocale, slug);
-  const availableLocales = await getPublishedLocalesForArticle(article.articleId);
 
-  const BackIcon = typedLocale === "ar" ? ArrowRight : ArrowLeft;
+  const tagIds = article.tags.map(({ tag }) => tag.id);
+  const [availableLocales, related, siteUrl] = await Promise.all([
+    getPublishedLocalesForArticle(article.articleId),
+    listRelatedArticlesPublic({ locale: typedLocale, articleId: article.articleId, tagIds }),
+    getSiteUrl(),
+  ]);
+
+  const BackIcon = isRtl ? ArrowRight : ArrowLeft;
+  const headings = extractHeadings(article.contentHtml);
+  const trimmedSiteUrl = siteUrl.replace(/\/$/, "");
+  const canonicalUrl = `${trimmedSiteUrl}/${typedLocale}/articles/${slug}`;
+  const breadcrumbLabels = BREADCRUMB_LABELS[typedLocale];
+  const articleSchema = buildArticleSchema({
+    siteUrl: trimmedSiteUrl,
+    url: canonicalUrl,
+    headline: article.title,
+    description: article.metaDescription || article.excerpt,
+    imageUrl: article.cover ? cloudinaryImageUrl(article.cover.publicId, { width: 1200 }) : undefined,
+    datePublished: article.publishedAt,
+    dateModified: article.updatedAt,
+    authorNames: article.authors.map(({ author }) => author.name),
+  });
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: breadcrumbLabels.home, url: `${trimmedSiteUrl}/${typedLocale}` },
+    { name: breadcrumbLabels.articles, url: `${trimmedSiteUrl}/${typedLocale}/articles` },
+    { name: article.title, url: canonicalUrl },
+  ]);
 
   return (
-    <article className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10">
-      <NextLink
-        href={`/${typedLocale}/articles`}
-        className="flex w-fit items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground"
-      >
-        <BackIcon aria-hidden="true" className="size-3.5" />
-        {BACK_LABEL[typedLocale]}
-      </NextLink>
+    <article className="flex flex-col gap-12 pb-20">
+      <JsonLd data={jsonLdGraph([articleSchema, breadcrumbSchema])} />
+      <ViewCounter articleId={article.articleId} />
 
-      {availableLocales.length > 1 && (
-        <nav className="flex gap-3 font-mono text-xs text-muted-foreground">
-          {/* Plain next/link — see the identical note in (site)/layout.tsx's
-              switcher on why next-intl's Link isn't used for cross-locale hrefs. */}
-          {availableLocales.map((entry) => (
+      <header className="border-b border-border">
+        <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-10 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <NextLink
-              key={entry.locale}
-              href={`/${entry.locale}/articles/${entry.slug}`}
-              aria-current={entry.locale === typedLocale ? "true" : undefined}
-              className={entry.locale === typedLocale ? "font-semibold text-foreground" : "hover:text-foreground"}
+              href={`/${typedLocale}/articles`}
+              className="flex w-fit items-center gap-1.5 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
-              {entry.locale.toUpperCase()}
+              <BackIcon aria-hidden="true" className="size-3.5" />
+              {t.back}
             </NextLink>
-          ))}
-        </nav>
-      )}
 
-      {article.cover && (
-        <div className="relative aspect-video overflow-hidden rounded-xl bg-muted">
-          <CldImage
-            publicId={article.cover.publicId}
-            alt={pickLocalizedText(article.cover.alt, typedLocale)}
-            fill
-            sizes="672px"
-            blurDataUrl={article.cover.blurDataUrl}
-          />
+            {availableLocales.length > 1 && (
+              <nav className="flex gap-3 font-mono text-xs text-muted-foreground">
+                {/* Plain next/link — see the identical note in (site)/layout.tsx's
+                    switcher on why next-intl's Link isn't used for cross-locale hrefs. */}
+                {availableLocales.map((entry) => (
+                  <NextLink
+                    key={entry.locale}
+                    href={`/${entry.locale}/articles/${entry.slug}`}
+                    aria-current={entry.locale === typedLocale ? "true" : undefined}
+                    className={entry.locale === typedLocale ? "font-semibold text-foreground" : "hover:text-foreground"}
+                  >
+                    {entry.locale.toUpperCase()}
+                  </NextLink>
+                ))}
+              </nav>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <h1 className="text-balance font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+              {article.title}
+            </h1>
+            {article.subtitle && <p className="max-w-2xl text-lg text-muted-foreground">{article.subtitle}</p>}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-6">
+            <AuthorBlock authors={article.authors} locale={typedLocale} />
+            <p className="font-mono text-xs text-muted-foreground">
+              {article.publishedAt && formatDate(article.publishedAt, typedLocale)}
+              {article.readingTime ? ` · ${t.readingTime(article.readingTime)}` : ""}
+            </p>
+          </div>
+
+          <div className="relative aspect-21/9 overflow-hidden rounded-2xl bg-muted">
+            {article.cover ? (
+              <CldImage
+                publicId={article.cover.publicId}
+                alt={pickLocalizedText(article.cover.alt, typedLocale)}
+                fill
+                sizes="(min-width: 1024px) 900px, 100vw"
+                blurDataUrl={article.cover.blurDataUrl}
+                className="object-cover"
+              />
+            ) : (
+              <SpectralBandRow variant="quiet" className="flex h-full w-full" />
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pb-8">
+            {article.pdfUrl && <ArticlePdfLink url={article.pdfUrl} label={t.pdf(formatFileSize(article.pdfBytes ?? 0, typedLocale))} />}
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs text-muted-foreground">{t.share}</span>
+              <ShareLinks url={canonicalUrl} title={article.title} labels={{ linkedin: t.shareLinkedin, whatsapp: t.shareWhatsapp, email: t.shareEmail }} />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto grid w-full max-w-4xl gap-10 px-4 sm:px-6 lg:max-w-5xl lg:grid-cols-[1fr_14rem]">
+        {/* contentHtml is sanitized server-side at save time (server/services/content.ts).
+            Content stays first in DOM order at every breakpoint — mobile stacks it
+            above the TOC, the lg: grid places the TOC beside it as a sidebar, and
+            neither needs an `order` override to get there. */}
+        <div className="article-content max-w-prose" dangerouslySetInnerHTML={{ __html: article.contentHtml }} />
+
+        {headings.length > 0 && <TocNav headings={headings} label={t.toc} />}
+      </div>
+
+      {article.tags.length > 0 && (
+        <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
+          <ul className="flex flex-wrap gap-2">
+            {article.tags.map(({ tag }) => (
+              <li key={tag.id}>
+                <NextLink
+                  href={`/${typedLocale}/articles/tag/${tag.slug}`}
+                  className="rounded-full bg-muted px-2.5 py-1 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {pickLocalizedText(tag.name, typedLocale)}
+                </NextLink>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
-      <header className="flex flex-col gap-2">
-        <h1 className="font-heading text-3xl text-foreground">{article.title}</h1>
-        {article.subtitle && <p className="text-lg text-muted-foreground">{article.subtitle}</p>}
-        <p className="font-mono text-xs text-muted-foreground">
-          {article.authors.map((row) => row.author.name).join(", ") || "—"} ·{" "}
-          {READING_TIME_LABEL[typedLocale](article.readingTime)}
-        </p>
-        {article.pdfUrl && <ArticlePdfLink url={article.pdfUrl} label={PDF_LABEL[typedLocale]} />}
-      </header>
-
-      {/* contentHtml is sanitized server-side at save time (server/services/content.ts) */}
-      <div className="article-content max-w-none" dangerouslySetInnerHTML={{ __html: article.contentHtml }} />
-
-      {article.tags.length > 0 && (
-        <ul className="flex flex-wrap gap-2">
-          {article.tags.map(({ tag }) => (
-            <li key={tag.id}>
-              <NextLink
-                href={`/${typedLocale}/articles/tag/${tag.slug}`}
-                className="rounded-full bg-muted px-2.5 py-1 font-mono text-xs text-muted-foreground hover:text-foreground"
-              >
-                {pickLocalizedText(tag.name, typedLocale)}
-              </NextLink>
-            </li>
-          ))}
-        </ul>
+      {related.length > 0 && (
+        <section className="border-t border-border">
+          <div className="mx-auto max-w-6xl px-4 pt-14 sm:px-6">
+            <h2 className="mb-8 font-heading text-2xl font-semibold text-foreground">{t.related}</h2>
+            <ScrollRevealGroup className="grid gap-x-8 gap-y-10 sm:grid-cols-3">
+              {related.map((item) => (
+                <ArticleCard key={item.slug} article={item} locale={typedLocale} readingTimeLabel={t.readingTime} />
+              ))}
+            </ScrollRevealGroup>
+          </div>
+        </section>
       )}
     </article>
   );

@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { TAGS, CACHE_PROFILE } from "@/lib/cache-tags";
 import { toDbLocale, fromDbLocale } from "@/lib/locale";
 import { ARTICLES_PAGE_SIZE } from "@/lib/validation/articles";
+import { TS_SEARCH_CONFIG } from "@/lib/search-config";
 import { Prisma } from "@/prisma/generated/client";
 import type { PublishStatus, Locale as PrismaLocale } from "@/prisma/generated/client";
 import type { LocaleCode } from "@/lib/validation/locale";
@@ -12,7 +13,10 @@ const ARTICLE_AUTHORS_SELECT = {
   select: { author: { select: { id: true, name: true } } },
 };
 
-const ARTICLE_PUBLIC_SELECT = {
+// Exported — server/queries/authors.ts (author profile's article list) and
+// server/queries/search.ts (combined search results) hydrate the same card
+// shape from a different `where`, and must stay in lockstep with it.
+export const ARTICLE_PUBLIC_SELECT = {
   id: true,
   slug: true,
   title: true,
@@ -30,19 +34,9 @@ const ARTICLE_PUBLIC_SELECT = {
   },
 } as const;
 
-// Matches the CASE in the search_vector trigger
-// (prisma/migrations/20260806140100_localisation_raw_sql) — the tsvector
-// column was already built with this per-locale dictionary, so the query
-// side has to ask in the same one for stemming to line up.
-const TS_SEARCH_CONFIG: Record<LocaleCode, "french" | "english" | "arabic"> = {
-  fr: "french",
-  en: "english",
-  ar: "arabic",
-};
-
-// Admin overview — every locale at once (Task 04a: "shows per-locale
-// status"), no locale param. `search` matches any translation regardless of
-// locale, so an admin can find an article by its EN title too.
+// Admin overview — every locale at once, showing per-locale status, no
+// locale param. `search` matches any translation regardless of locale, so
+// an admin can find an article by its EN title too.
 export async function listArticlesAdmin({
   search,
   status,
@@ -101,7 +95,7 @@ export async function listArticlesAdmin({
 }
 
 // Full record for the tab UI — all translations mounted at once, one round
-// trip (Task 04a step 10).
+// trip.
 export async function getArticleForEdit(id: string) {
   "use cache";
   cacheLife(CACHE_PROFILE);
@@ -149,9 +143,9 @@ export async function getArticleBySlugForPublic(locale: LocaleCode, slug: string
   return { ...article, ...rest, translationId };
 }
 
-// Backs the article-page language switcher — "offers only the locales it
-// exists in" (Task 04a), not every locale unconditionally like the
-// structural-page switcher does.
+// Backs the article-page language switcher — offers only the locales it
+// exists in, not every locale unconditionally like the structural-page
+// switcher does.
 export async function getPublishedLocalesForArticle(articleId: string) {
   "use cache";
   cacheLife(CACHE_PROFILE);
@@ -165,10 +159,10 @@ export async function getPublishedLocalesForArticle(articleId: string) {
 }
 
 // Cross-locale lookup backing the "direct link to a locale that doesn't have
-// this article redirects to one that does, preferring French" rule
-// (Task 04a). Only PUBLISHED translations count — never reveal a draft's
-// existence in another locale (error-handling.md's "never confirm draft
-// existence" rule applies just as much across locales as within one).
+// this article redirects to one that does, preferring French" rule. Only
+// PUBLISHED translations count — never reveal a draft's existence in
+// another locale (the "never confirm draft existence" rule applies just as
+// much across locales as within one).
 const LOCALE_PRIORITY: PrismaLocale[] = ["FR", "EN", "AR"];
 
 export async function getArticleTranslationBySlugAnyLocale(slug: string) {
@@ -248,6 +242,22 @@ export async function listArticlesPublic({
   ]);
 
   return { items, total, page, pageCount: Math.max(1, Math.ceil(total / ARTICLES_PAGE_SIZE)) };
+}
+
+// Home page teaser — the 3 most recent published articles for the active
+// locale, independent per locale like every other publication read (no
+// fallback to another locale's articles).
+export async function listLatestArticlesPublic(locale: LocaleCode, limit = 3) {
+  "use cache";
+  cacheLife(CACHE_PROFILE);
+  cacheTag(TAGS.articleList(locale));
+
+  return db.articleTranslation.findMany({
+    where: { locale: toDbLocale(locale), status: "PUBLISHED" },
+    orderBy: { publishedAt: "desc" },
+    take: limit,
+    select: ARTICLE_PUBLIC_SELECT,
+  });
 }
 
 // Free-text search — queries the per-locale `search_vector` tsvector column
@@ -334,9 +344,90 @@ export async function listPublishedArticleTranslationsForSitemap() {
   });
 }
 
+// Public tag filter — only tags actually carried by a published article in
+// this locale, never the admin's full Tag table (listTags()), which would
+// surface a tag whose only articles are drafts or published in a different
+// locale.
+export async function listArticleTagsForPublic(locale: LocaleCode) {
+  "use cache";
+  cacheLife(CACHE_PROFILE);
+  cacheTag(TAGS.articleList(locale));
+
+  return db.tag.findMany({
+    where: { articles: { some: { article: { translations: { some: { locale: toDbLocale(locale), status: "PUBLISHED" } } } } } },
+    orderBy: { slug: "asc" },
+    select: { id: true, slug: true, name: true },
+  });
+}
+
+const RELATED_ARTICLE_SELECT = {
+  ...ARTICLE_PUBLIC_SELECT,
+  article: { select: { ...ARTICLE_PUBLIC_SELECT.article.select, tags: { select: { tagId: true } } } },
+} as const;
+
+// Shared tags first, then recency — one query for the tag-overlap pool,
+// ranked in JS by how many tags it shares with the current article, with a
+// second recency-only query filling any remainder (an article with no
+// tags, or fewer than `limit` tagged siblings).
+export async function listRelatedArticlesPublic({
+  locale,
+  articleId,
+  tagIds,
+  limit = 3,
+}: {
+  locale: LocaleCode;
+  articleId: string;
+  tagIds: string[];
+  limit?: number;
+}) {
+  "use cache";
+  cacheLife(CACHE_PROFILE);
+  cacheTag(TAGS.articleList(locale));
+
+  const dbLocale = toDbLocale(locale);
+
+  const pool =
+    tagIds.length > 0
+      ? await db.articleTranslation.findMany({
+          where: {
+            locale: dbLocale,
+            status: "PUBLISHED",
+            article: { id: { not: articleId }, tags: { some: { tagId: { in: tagIds } } } },
+          },
+          orderBy: { publishedAt: "desc" },
+          take: limit * 5,
+          select: RELATED_ARTICLE_SELECT,
+        })
+      : [];
+
+  const ranked = [...pool].sort((a, b) => {
+    const sharedA = a.article.tags.filter((t) => tagIds.includes(t.tagId)).length;
+    const sharedB = b.article.tags.filter((t) => tagIds.includes(t.tagId)).length;
+    if (sharedB !== sharedA) return sharedB - sharedA;
+    return (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0);
+  });
+
+  const related = ranked.slice(0, limit).map((row) => ({
+    ...row,
+    article: { id: row.article.id, featured: row.article.featured, cover: row.article.cover, authors: row.article.authors },
+  }));
+
+  if (related.length >= limit) return related;
+
+  const excludeArticleIds = [articleId, ...related.map((r) => r.article.id)];
+  const fill = await db.articleTranslation.findMany({
+    where: { locale: dbLocale, status: "PUBLISHED", article: { id: { notIn: excludeArticleIds } } },
+    orderBy: { publishedAt: "desc" },
+    take: limit - related.length,
+    select: ARTICLE_PUBLIC_SELECT,
+  });
+
+  return [...related, ...fill];
+}
+
 // Bypasses the cache entirely — draft preview must never read a stale or
-// public-cached copy (architecture-full.md §11 point 3). Locale-scoped: a
-// preview of a translation that was never written returns null.
+// public-cached copy. Locale-scoped: a preview of a translation that was
+// never written returns null.
 export async function getArticleForPreview(id: string, locale: LocaleCode) {
   const translation = await db.articleTranslation.findUnique({
     where: { articleId_locale: { articleId: id, locale: toDbLocale(locale) } },
