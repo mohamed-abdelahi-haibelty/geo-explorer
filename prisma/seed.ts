@@ -45,6 +45,10 @@ const pageSections: {
   data: Prisma.InputJsonValue;
 }[] = [
   // ───────────────────────── HOME ─────────────────────────
+  // EN/AR rows below are machine-translated placeholders, not client-
+  // confirmed copy (unlike the SERVICES/intro and services translations
+  // further down) — replace with real client-reviewed translations before
+  // this is treated as production content.
   {
     page: PageKey.HOME,
     key: "hero",
@@ -54,6 +58,32 @@ const pageSections: {
       subtitle:
         "GeoExplorer Services accompagne les acteurs du secteur minier en Mauritanie à chaque étape — de l'exploration à la valorisation durable des ressources.",
       ctaLabel: "Discutons de votre projet",
+      ctaHref: "/contact",
+    },
+  },
+  {
+    page: PageKey.HOME,
+    key: "hero",
+    locale: Locale.EN,
+    order: 0,
+    data: {
+      title: "Revealing the subsurface's potential. Securing your decisions.",
+      subtitle:
+        "GeoExplorer Services supports mining sector stakeholders in Mauritania at every stage — from exploration to the sustainable development of resources.",
+      ctaLabel: "Let's discuss your project",
+      ctaHref: "/contact",
+    },
+  },
+  {
+    page: PageKey.HOME,
+    key: "hero",
+    locale: Locale.AR,
+    order: 0,
+    data: {
+      title: "الكشف عن إمكانات باطن الأرض. تأمين قراراتكم.",
+      subtitle:
+        "يرافق GeoExplorer Services الفاعلين في القطاع المنجمي في موريتانيا في كل مرحلة — من الاستكشاف إلى التثمين المستدام للموارد.",
+      ctaLabel: "لنتحدث عن مشروعكم",
       ctaHref: "/contact",
     },
   },
@@ -88,6 +118,65 @@ const pageSections: {
   },
   {
     page: PageKey.HOME,
+    key: "values",
+    locale: Locale.EN,
+    order: 1,
+    data: {
+      items: [
+        {
+          label: "Expertise",
+          description:
+            "Comprehensive geoscience skills, proven on the ground in Mauritania.",
+        },
+        {
+          label: "Integrity",
+          description:
+            "Traceable data and conclusions that say what the results actually show.",
+        },
+        {
+          label: "Innovation",
+          description:
+            "Drones, remote sensing and modelling in the service of better-informed decisions.",
+        },
+        {
+          label: "Commitment",
+          description:
+            "Continuous support, from initial scoping through to the final decision.",
+        },
+      ],
+    },
+  },
+  {
+    page: PageKey.HOME,
+    key: "values",
+    locale: Locale.AR,
+    order: 1,
+    data: {
+      items: [
+        {
+          label: "الخبرة",
+          description: "كفاءات جيولوجية شاملة، مُثبتة ميدانياً في موريتانيا.",
+        },
+        {
+          label: "النزاهة",
+          description:
+            "بيانات قابلة للتتبع واستنتاجات تعكس ما تُظهره النتائج فعلاً.",
+        },
+        {
+          label: "الابتكار",
+          description:
+            "طائرات مسيّرة واستشعار عن بعد ونمذجة في خدمة قرارات أكثر استنارة.",
+        },
+        {
+          label: "الالتزام",
+          description:
+            "مواكبة مستمرة، من التأطير الأولي إلى اتخاذ القرار النهائي.",
+        },
+      ],
+    },
+  },
+  {
+    page: PageKey.HOME,
     key: "whoWeAre",
     order: 2,
     data: {
@@ -100,11 +189,57 @@ const pageSections: {
   },
   {
     page: PageKey.HOME,
+    key: "whoWeAre",
+    locale: Locale.EN,
+    order: 2,
+    data: {
+      heading: "Who we are",
+      lead: "Mauritania's reference geoscience partner, since 2008.",
+      body: "Since 2008, GeoExplorer Services has been turning field data into solid technical decisions for mining operators, public institutions and investors. Our team of qualified experts covers the full cycle of a geoscience project — exploration, mapping, GIS, project management, technical-economic and environmental studies — to deliver reliable, innovative and tailored solutions.",
+      linkLabel: "Learn more",
+      linkHref: "/a-propos",
+    },
+  },
+  {
+    page: PageKey.HOME,
+    key: "whoWeAre",
+    locale: Locale.AR,
+    order: 2,
+    data: {
+      heading: "من نحن",
+      lead: "الشريك المرجعي في علوم الأرض في موريتانيا، منذ عام 2008.",
+      body: "منذ عام 2008، يحوّل GeoExplorer Services بيانات الميدان إلى قرارات تقنية متينة لفائدة المشغّلين المنجميين والمؤسسات العمومية والمستثمرين. يتحكّم فريقنا من الخبراء المؤهلين في كامل دورة المشروع الجيولوجي — الاستكشاف، رسم الخرائط، نظم المعلومات الجغرافية، إدارة المشاريع، الدراسات التقنية الاقتصادية والبيئية — لتقديم حلول موثوقة ومبتكرة ومصمّمة خصيصاً لاحتياجاتكم.",
+      linkLabel: "اعرف المزيد",
+      linkHref: "/a-propos",
+    },
+  },
+  {
+    page: PageKey.HOME,
     key: "expertiseTeaser",
     order: 3,
     data: {
       heading: "Ce que nous faisons",
       intro: "Cinq expertises, une même exigence : la rigueur.",
+    },
+  },
+  {
+    page: PageKey.HOME,
+    key: "expertiseTeaser",
+    locale: Locale.EN,
+    order: 3,
+    data: {
+      heading: "What we do",
+      intro: "Five areas of expertise, one shared standard: rigour.",
+    },
+  },
+  {
+    page: PageKey.HOME,
+    key: "expertiseTeaser",
+    locale: Locale.AR,
+    order: 3,
+    data: {
+      heading: "ما الذي نقوم به",
+      intro: "خمس مجالات خبرة، ومطلب واحد: الصرامة العلمية.",
     },
   },
   {
@@ -139,6 +274,68 @@ const pageSections: {
   },
   {
     page: PageKey.HOME,
+    key: "strengths",
+    locale: Locale.EN,
+    order: 4,
+    data: {
+      heading: "Why GeoExplorer",
+      items: [
+        {
+          title: "Proven expertise",
+          description:
+            "Geology, geophysics, geochemistry, hydrogeology, geotechnics, GIS and environment, brought together in a single team.",
+        },
+        {
+          title: "An intimate knowledge of the terrain",
+          description:
+            "A fine-grained command of Mauritania's geological, mining and logistical realities, built project after project.",
+        },
+        {
+          title: "State-of-the-art technology",
+          description:
+            "Drones, photogrammetry, geophysical and geochemical equipment, advanced modelling.",
+        },
+        {
+          title: "A strong network",
+          description:
+            "Established coordination with administrations, laboratories, consultants and service providers, to anticipate procedures rather than be slowed down by them.",
+        },
+      ],
+    },
+  },
+  {
+    page: PageKey.HOME,
+    key: "strengths",
+    locale: Locale.AR,
+    order: 4,
+    data: {
+      heading: "لماذا GeoExplorer",
+      items: [
+        {
+          title: "خبرة مثبتة",
+          description:
+            "جيولوجيا، جيوفيزياء، جيوكيمياء، هيدروجيولوجيا، جيوتقنية، نظم معلومات جغرافية وبيئة، ضمن فريق واحد.",
+        },
+        {
+          title: "معرفة دقيقة بالميدان",
+          description:
+            "إتقان دقيق للواقع الجيولوجي والمنجمي واللوجستي الموريتاني، مكتسب مشروعاً تلو الآخر.",
+        },
+        {
+          title: "تقنية متطورة",
+          description:
+            "طائرات مسيّرة، تصوير فوتوغرامتري، معدات جيوفيزيائية وجيوكيميائية، نمذجة متقدمة.",
+        },
+        {
+          title: "شبكة علاقات متينة",
+          description:
+            "تنسيق راسخ مع الإدارات والمخابر والاستشاريين ومقدّمي الخدمات، لاستباق الإجراءات بدل التعامل معها كعائق.",
+        },
+      ],
+    },
+  },
+  {
+    page: PageKey.HOME,
     key: "partnersTeaser",
     order: 5,
     data: {
@@ -151,6 +348,32 @@ const pageSections: {
   },
   {
     page: PageKey.HOME,
+    key: "partnersTeaser",
+    locale: Locale.EN,
+    order: 5,
+    data: {
+      heading: "They trust us",
+      subheading:
+        "Expertise recognised by public, private, technical and academic stakeholders — on concrete mining projects, across Mauritania.",
+      note:
+        "An overview of our collaborations. Outdated historical information has been updated or excluded.",
+    },
+  },
+  {
+    page: PageKey.HOME,
+    key: "partnersTeaser",
+    locale: Locale.AR,
+    order: 5,
+    data: {
+      heading: "يثقون بنا",
+      subheading:
+        "خبرة معترف بها من قِبل فاعلين عموميين وخواص وتقنيين وأكاديميين — في مشاريع منجمية ملموسة، في مختلف أنحاء موريتانيا.",
+      note:
+        "لمحة عن تعاوننا. تم تحديث أو استبعاد المعلومات التاريخية غير المحدّثة.",
+    },
+  },
+  {
+    page: PageKey.HOME,
     key: "closingBanner",
     order: 6,
     data: {
@@ -158,8 +381,29 @@ const pageSections: {
         "Explorer le sol et le sous-sol. Révéler leurs richesses. Valoriser leur potentiel.",
     },
   },
+  {
+    page: PageKey.HOME,
+    key: "closingBanner",
+    locale: Locale.EN,
+    order: 6,
+    data: {
+      quote:
+        "Exploring the ground and subsurface. Revealing their wealth. Developing their potential.",
+    },
+  },
+  {
+    page: PageKey.HOME,
+    key: "closingBanner",
+    locale: Locale.AR,
+    order: 6,
+    data: {
+      quote: "استكشاف سطح الأرض وباطنها. الكشف عن ثرواتهما. تثمين إمكاناتهما.",
+    },
+  },
 
   // ───────────────────────── ABOUT ─────────────────────────
+  // EN/AR rows below are machine-translated placeholders, not client-
+  // confirmed copy — see the note above the HOME section.
   {
     page: PageKey.ABOUT,
     key: "intro",
@@ -176,6 +420,36 @@ const pageSections: {
   },
   {
     page: PageKey.ABOUT,
+    key: "intro",
+    locale: Locale.EN,
+    order: 0,
+    data: {
+      heading:
+        "A Mauritanian firm, one ambition: advancing the mining sector through scientific rigour.",
+      subheading: "Our story",
+      body: [
+        "Since 2008, GeoExplorer Services has supported public and private organisations, mining operators and investors at every stage of their projects — from initial planning through to the final interpretation of data. This experience has been built project after project, alongside public, private, technical and academic stakeholders.",
+        "Today, our team of qualified experts puts that know-how to work for our clients across mineral exploration, geological mapping, GIS, project management, technical-economic and environmental studies, consulting, technical assistance and training. One ambition: reliable, innovative solutions, designed around the real needs of each project.",
+      ],
+    },
+  },
+  {
+    page: PageKey.ABOUT,
+    key: "intro",
+    locale: Locale.AR,
+    order: 0,
+    data: {
+      heading:
+        "مكتب موريتاني، وطموح واحد: النهوض بالقطاع المنجمي عبر الصرامة العلمية.",
+      subheading: "قصتنا",
+      body: [
+        "منذ عام 2008، يرافق GeoExplorer Services الهياكل العمومية والخاصة والمشغّلين المنجميين والمستثمرين في كل مرحلة من مراحل مشاريعهم — من التخطيط الأولي إلى التفسير النهائي للبيانات. تشكّلت هذه الخبرة مشروعاً تلو الآخر، إلى جانب فاعلين عموميين وخواص وتقنيين وأكاديميين.",
+        "اليوم، يضع فريقنا من الخبراء المؤهلين هذه الدراية في خدمة عملائنا في مجالات الاستكشاف المنجمي، رسم الخرائط الجيولوجية، نظم المعلومات الجغرافية، إدارة المشاريع، الدراسات التقنية الاقتصادية والبيئية، الاستشارة، المساعدة التقنية والتكوين. طموح واحد: حلول موثوقة ومبتكرة، مصمَّمة وفق الاحتياجات الفعلية لكل مشروع.",
+      ],
+    },
+  },
+  {
+    page: PageKey.ABOUT,
     key: "mission",
     order: 1,
     data: {
@@ -186,12 +460,56 @@ const pageSections: {
   },
   {
     page: PageKey.ABOUT,
+    key: "mission",
+    locale: Locale.EN,
+    order: 1,
+    data: {
+      heading: "Our mission",
+      body:
+        "To advance the mining sector alongside public and private operators — by reducing technical risk, strengthening the quality of decisions, and securing investments.",
+    },
+  },
+  {
+    page: PageKey.ABOUT,
+    key: "mission",
+    locale: Locale.AR,
+    order: 1,
+    data: {
+      heading: "مهمتنا",
+      body:
+        "النهوض بالقطاع المنجمي إلى جانب المشغّلين العموميين والخواص — عبر الحدّ من المخاطر التقنية، وتعزيز جودة القرارات، وتأمين الاستثمارات.",
+    },
+  },
+  {
+    page: PageKey.ABOUT,
     key: "vision",
     order: 2,
     data: {
       heading: "Notre vision",
       body:
         "Anticiper les nouveaux enjeux des ressources minérales et bâtir des stratégies durables, fondées sur la connaissance, l'exigence des données et le respect de l'environnement.",
+    },
+  },
+  {
+    page: PageKey.ABOUT,
+    key: "vision",
+    locale: Locale.EN,
+    order: 2,
+    data: {
+      heading: "Our vision",
+      body:
+        "To anticipate emerging challenges in mineral resources and build sustainable strategies, grounded in knowledge, data rigour and respect for the environment.",
+    },
+  },
+  {
+    page: PageKey.ABOUT,
+    key: "vision",
+    locale: Locale.AR,
+    order: 2,
+    data: {
+      heading: "رؤيتنا",
+      body:
+        "استباق التحديات الجديدة المرتبطة بالموارد المعدنية، وبناء استراتيجيات مستدامة، قائمة على المعرفة ودقة البيانات واحترام البيئة.",
     },
   },
   {
@@ -226,12 +544,96 @@ const pageSections: {
   },
   {
     page: PageKey.ABOUT,
+    key: "strengths",
+    locale: Locale.EN,
+    order: 3,
+    data: {
+      heading: "What sets us apart",
+      items: [
+        {
+          title: "Complete expertise, under one roof",
+          description:
+            "Geology, exploration, GIS, geophysics, geochemistry, environment, hydrogeology, geotechnics, consulting, assistance and administrative follow-up — every skill your project needs, brought together in a single team.",
+        },
+        {
+          title: "Field knowledge that makes the difference",
+          description:
+            "A fine-grained command of Mauritania's own geological, mining and logistical contexts — a decisive asset in anticipating real conditions on the ground.",
+        },
+        {
+          title: "Tools equal to the challenge",
+          description:
+            "Drones, photogrammetry, state-of-the-art geophysical and geochemical equipment, spatial databases, modelling and specialised software.",
+        },
+        {
+          title: "A network that speeds up your projects",
+          description:
+            "Smooth coordination with administrations, laboratories, consultants and service providers: permits prepared ahead of time and deadlines kept.",
+        },
+      ],
+    },
+  },
+  {
+    page: PageKey.ABOUT,
+    key: "strengths",
+    locale: Locale.AR,
+    order: 3,
+    data: {
+      heading: "ما يميّزنا",
+      items: [
+        {
+          title: "خبرة شاملة تحت سقف واحد",
+          description:
+            "جيولوجيا، استكشاف، نظم معلومات جغرافية، جيوفيزياء، جيوكيمياء، بيئة، هيدروجيولوجيا، جيوتقنية، استشارة، مساعدة ومتابعة إدارية — كل الكفاءات التي يحتاجها مشروعكم، مجتمعة ضمن فريق واحد.",
+        },
+        {
+          title: "معرفة ميدانية تصنع الفرق",
+          description:
+            "إتقان دقيق للسياقات الجيولوجية والمنجمية واللوجستية الخاصة بموريتانيا — ميزة حاسمة لاستباق الإكراهات الفعلية للميدان.",
+        },
+        {
+          title: "أدوات في مستوى التحديات",
+          description:
+            "طائرات مسيّرة، تصوير فوتوغرامتري، معدات جيوفيزيائية وجيوكيميائية متطورة، قواعد بيانات مكانية، نمذجة وبرمجيات متخصصة.",
+        },
+        {
+          title: "شبكة علاقات تُسرّع مشاريعكم",
+          description:
+            "تنسيق سلس مع الإدارات والمخابر والاستشاريين ومقدّمي الخدمات: تراخيص مُعدّة سلفاً وآجال محترمة.",
+        },
+      ],
+    },
+  },
+  {
+    page: PageKey.ABOUT,
     key: "team",
     order: 4,
     data: {
       heading: "Une équipe à votre image",
       body:
         "GeoExplorer Services mobilise géologues, géomaticiens, experts en environnement, spécialistes de l'exploration et consultants associés, selon les besoins précis de chaque mission. Cette organisation flexible permet d'associer compétences locales et internationales, en français, en arabe et en anglais — les trois langues de vos interlocuteurs, du terrain à l'administration.",
+    },
+  },
+  {
+    page: PageKey.ABOUT,
+    key: "team",
+    locale: Locale.EN,
+    order: 4,
+    data: {
+      heading: "A team shaped around you",
+      body:
+        "GeoExplorer Services mobilises geologists, geomatics specialists, environmental experts, exploration specialists and associate consultants, according to the precise needs of each assignment. This flexible structure makes it possible to combine local and international skills, in French, Arabic and English — the three languages of your contacts, from the field to the administration.",
+    },
+  },
+  {
+    page: PageKey.ABOUT,
+    key: "team",
+    locale: Locale.AR,
+    order: 4,
+    data: {
+      heading: "فريق على مقاسكم",
+      body:
+        "يعبّئ GeoExplorer Services جيولوجيين، متخصصين في المعلوماتية الجغرافية، خبراء بيئة، متخصصين في الاستكشاف واستشاريين شركاء، حسب الاحتياجات الدقيقة لكل مهمة. يتيح هذا التنظيم المرن الجمع بين الكفاءات المحلية والدولية، باللغات الفرنسية والعربية والإنجليزية — اللغات الثلاث لمخاطبيكم، من الميدان إلى الإدارة.",
     },
   },
   {
@@ -269,6 +671,74 @@ const pageSections: {
   },
   {
     page: PageKey.ABOUT,
+    key: "approach",
+    locale: Locale.EN,
+    order: 5,
+    data: {
+      heading: "Our method: an integrated approach, from need to decision",
+      intro:
+        "Every assignment follows a clear thread, from understanding the need to delivering actionable results:",
+      steps: [
+        { number: 1, title: "Scoping", description: "understanding your objectives" },
+        {
+          number: 2,
+          title: "Acquisition",
+          description: "collecting data in the field",
+        },
+        {
+          number: 3,
+          title: "QA/QC",
+          description: "guaranteeing the reliability of every data point",
+        },
+        {
+          number: 4,
+          title: "Interpretation",
+          description: "making sense of the results",
+        },
+        {
+          number: 5,
+          title: "Decision",
+          description: "giving you a solid basis for action",
+        },
+      ],
+    },
+  },
+  {
+    page: PageKey.ABOUT,
+    key: "approach",
+    locale: Locale.AR,
+    order: 5,
+    data: {
+      heading: "منهجيتنا: مقاربة متكاملة، من الحاجة إلى القرار",
+      intro:
+        "تتبع كل مهمة مساراً واضحاً، من فهم الحاجة إلى تسليم نتائج قابلة للاستثمار:",
+      steps: [
+        { number: 1, title: "التأطير", description: "فهم أهدافكم" },
+        {
+          number: 2,
+          title: "الاستحصال",
+          description: "جمع البيانات ميدانياً",
+        },
+        {
+          number: 3,
+          title: "ضمان ومراقبة الجودة",
+          description: "ضمان موثوقية كل معطى",
+        },
+        {
+          number: 4,
+          title: "التفسير",
+          description: "إعطاء معنى للنتائج",
+        },
+        {
+          number: 5,
+          title: "القرار",
+          description: "تزويدكم بأسس متينة لاتخاذ القرار",
+        },
+      ],
+    },
+  },
+  {
+    page: PageKey.ABOUT,
     key: "referenceDomains",
     order: 6,
     data: {
@@ -298,6 +768,74 @@ const pageSections: {
       ],
       note:
         "Aperçu de nos collaborations. Les informations historiques obsolètes ont été actualisées ou exclues.",
+    },
+  },
+  {
+    page: PageKey.ABOUT,
+    key: "referenceDomains",
+    locale: Locale.EN,
+    order: 6,
+    data: {
+      heading: "They have trusted us",
+      subheading:
+        "Expertise recognised by public, private, technical and academic stakeholders — on concrete mining projects, across Mauritania.",
+      items: [
+        {
+          title: "Heavy mineral sands",
+          description:
+            "Drone survey, auger drilling, sampling, analysis and modelling.",
+        },
+        {
+          title: "Gold and base metals",
+          description: "Structural mapping, geochemistry, targeting and supervision.",
+        },
+        {
+          title: "Industrial materials",
+          description:
+            "Limestone, kaolin and quarry materials: targeting and selection.",
+        },
+        {
+          title: "Infrastructure and promotion",
+          description:
+            "Environment, topography, materials, benchmarking and strategy.",
+        },
+      ],
+      note:
+        "An overview of our collaborations. Outdated historical information has been updated or excluded.",
+    },
+  },
+  {
+    page: PageKey.ABOUT,
+    key: "referenceDomains",
+    locale: Locale.AR,
+    order: 6,
+    data: {
+      heading: "وثقوا بنا",
+      subheading:
+        "خبرة معترف بها من قِبل فاعلين عموميين وخواص وتقنيين وأكاديميين — في مشاريع منجمية ملموسة، في مختلف أنحاء موريتانيا.",
+      items: [
+        {
+          title: "الرمال المعدنية الثقيلة",
+          description:
+            "مسح بالطائرات المسيّرة، حفر بالمثقاب، أخذ عينات، تحاليل ونمذجة.",
+        },
+        {
+          title: "الذهب والمعادن الأساسية",
+          description: "رسم الخرائط البنيوية، الجيوكيمياء، الاستهداف والإشراف.",
+        },
+        {
+          title: "المواد الصناعية",
+          description:
+            "الحجر الجيري، الكاولين ومواد المقالع: الاستهداف والانتقاء.",
+        },
+        {
+          title: "البنية التحتية والترويج",
+          description:
+            "البيئة، الطبوغرافيا، المواد، المقارنة المرجعية والاستراتيجية.",
+        },
+      ],
+      note:
+        "لمحة عن تعاوننا. تم تحديث أو استبعاد المعلومات التاريخية غير المحدّثة.",
     },
   },
 
@@ -337,6 +875,8 @@ const pageSections: {
   },
 
   // ───────────────────────── CONTACT ─────────────────────────
+  // EN/AR rows below are machine-translated placeholders, not client-
+  // confirmed copy — see the note above the HOME section.
   {
     page: PageKey.CONTACT,
     key: "hero",
@@ -350,11 +890,55 @@ const pageSections: {
   },
   {
     page: PageKey.CONTACT,
+    key: "hero",
+    locale: Locale.EN,
+    order: 0,
+    data: {
+      heading: "Have a geoscience project in mind? Let's talk.",
+      body:
+        "GeoExplorer Services, your technical partner in Mauritania — at the heart of your projects, we turn field data into solid decisions.",
+      values: ["Expertise", "Integrity", "Innovation", "Commitment"],
+    },
+  },
+  {
+    page: PageKey.CONTACT,
+    key: "hero",
+    locale: Locale.AR,
+    order: 0,
+    data: {
+      heading: "لديكم مشروع جيولوجي؟ لنتحدث عنه.",
+      body:
+        "GeoExplorer Services، شريككم التقني في موريتانيا — في صميم مشاريعكم، نحوّل بيانات الميدان إلى قرارات متينة.",
+      values: ["الخبرة", "النزاهة", "الابتكار", "الالتزام"],
+    },
+  },
+  {
+    page: PageKey.CONTACT,
     key: "formIntro",
     order: 1,
     data: {
       body:
         "Décrivez votre besoin en quelques lignes — nature du projet, localisation, échéance envisagée. Nous revenons vers vous avec un premier avis technique et les prochaines étapes.",
+    },
+  },
+  {
+    page: PageKey.CONTACT,
+    key: "formIntro",
+    locale: Locale.EN,
+    order: 1,
+    data: {
+      body:
+        "Describe your need in a few lines — the nature of the project, its location, the timeline you have in mind. We'll get back to you with an initial technical opinion and the next steps.",
+    },
+  },
+  {
+    page: PageKey.CONTACT,
+    key: "formIntro",
+    locale: Locale.AR,
+    order: 1,
+    data: {
+      body:
+        "صفوا احتياجكم في بضعة أسطر — طبيعة المشروع، موقعه، والأجل المتوقع. سنعاود الاتصال بكم برأي تقني أولي وبالخطوات المقبلة.",
     },
   },
   {
@@ -372,12 +956,45 @@ const pageSections: {
       ],
     },
   },
+  {
+    page: PageKey.CONTACT,
+    key: "projectTypes",
+    locale: Locale.EN,
+    order: 2,
+    data: {
+      items: [
+        "Geology and mineral exploration",
+        "Mining engineering and studies",
+        "GIS and remote sensing",
+        "Environment",
+        "Training and capacity building",
+        "Other",
+      ],
+    },
+  },
+  {
+    page: PageKey.CONTACT,
+    key: "projectTypes",
+    locale: Locale.AR,
+    order: 2,
+    data: {
+      items: [
+        "الجيولوجيا والاستكشاف المنجمي",
+        "الهندسة المنجمية والدراسات",
+        "نظم المعلومات الجغرافية والاستشعار عن بعد",
+        "البيئة",
+        "التكوين وتعزيز القدرات",
+        "أخرى",
+      ],
+    },
+  },
 
   // ───────────────────────── GLOBAL ─────────────────────────
   // A starting draft built only from facts already confirmed (identity,
   // address, contact, self-hosting); no registration number or named
   // individual is invented. Editable from /admin/pages/mentions-legales
-  // like every other structural section.
+  // like every other structural section. EN/AR rows are machine-translated
+  // placeholders, not client-confirmed copy — see the note above HOME.
   {
     page: PageKey.GLOBAL,
     key: "legal",
@@ -415,14 +1032,90 @@ const pageSections: {
       ],
     },
   },
+  {
+    page: PageKey.GLOBAL,
+    key: "legal",
+    locale: Locale.EN,
+    order: 0,
+    data: {
+      heading: "Legal notice",
+      intro:
+        "In accordance with applicable regulations, this legal notice sets out the identity of the site's publisher and the terms of use of the published content.",
+      sections: [
+        {
+          title: "Site publisher",
+          body:
+            "GeoExplorer Services — 37 Ext. F-NORD, Secteur 2, Tevragh Zeina, Nouakchott, Mauritania. Phone: +222 22 00 20 04 / +222 20 28 00 00. Email: contact@geoexplorerservices.com. Publication of the site is overseen by GeoExplorer Services management.",
+        },
+        {
+          title: "Hosting",
+          body:
+            "The site is hosted and operated by GeoExplorer Services on its own infrastructure, accessible over an encrypted (TLS) connection.",
+        },
+        {
+          title: "Intellectual property",
+          body:
+            "All content published on this site — text, studies, images and graphic elements — is the property of GeoExplorer Services or its partners, unless otherwise stated, and may not be reproduced without prior authorisation.",
+        },
+        {
+          title: "Personal data",
+          body:
+            "Information submitted via the contact form is used exclusively to process your request and is not shared with any third party. You may request to access, correct or delete it by writing to contact@geoexplorerservices.com.",
+        },
+        {
+          title: "Cookies",
+          body:
+            "This site does not use advertising tracking cookies. Only cookies strictly necessary for its operation (language preference) may be set.",
+        },
+      ],
+    },
+  },
+  {
+    page: PageKey.GLOBAL,
+    key: "legal",
+    locale: Locale.AR,
+    order: 0,
+    data: {
+      heading: "الإشعار القانوني",
+      intro:
+        "وفقاً للأحكام المعمول بها، يوضّح هذا الإشعار القانوني هوية ناشر الموقع وشروط استخدام المحتوى المنشور.",
+      sections: [
+        {
+          title: "ناشر الموقع",
+          body:
+            "GeoExplorer Services — 37 Ext. F-NORD، القطاع 2، تفرغ زينة، نواكشوط، موريتانيا. الهاتف: 20 00 22 22 222+ / 00 00 28 20 222+. البريد الإلكتروني: contact@geoexplorerservices.com. تتولى إدارة GeoExplorer Services نشر الموقع.",
+        },
+        {
+          title: "الاستضافة",
+          body:
+            "يُستضاف الموقع ويُشغَّل من طرف GeoExplorer Services على بنية تحتية خاصة بها، يمكن الوصول إليها عبر اتصال مشفّر (TLS).",
+        },
+        {
+          title: "الملكية الفكرية",
+          body:
+            "جميع المحتويات المنشورة على هذا الموقع — نصوص، دراسات، صور وعناصر رسومية — هي ملك لـ GeoExplorer Services أو لشركائها، ما لم يُذكر خلاف ذلك، ولا يجوز إعادة إنتاجها دون إذن مسبق.",
+        },
+        {
+          title: "المعطيات الشخصية",
+          body:
+            "تُستخدم المعلومات المرسلة عبر استمارة الاتصال حصراً لمعالجة طلبكم ولا يتم إطلاع أي طرف ثالث عليها. يمكنكم طلب الاطلاع عليها أو تصحيحها أو حذفها بمراسلتنا على contact@geoexplorerservices.com.",
+        },
+        {
+          title: "ملفات تعريف الارتباط",
+          body:
+            "لا يستخدم هذا الموقع ملفات تعريف ارتباط (كوكيز) لأغراض التتبّع الإعلاني. يمكن فقط استخدام الملفات الضرورية بشكل صارم لتشغيله (اختيار اللغة).",
+        },
+      ],
+    },
+  },
 ];
 
 // Seed content is French by default — a row becomes the FR row unless it
 // declares its own `locale`, matching how the existing-data migration
-// treated Article/News/Service. EN/AR content for most sections is still a
-// translation task for the client; the Services page intro is an
-// exception — its EN/AR text is confirmed client copy, so it's seeded
-// alongside FR.
+// treated Article/News/Service. Only the Services page intro's EN/AR text
+// is confirmed client copy; every other section's EN/AR rows are
+// machine-translated placeholders pending client review — swap them via
+// the admin back-office or update this file once real translations land.
 async function seedPageSections() {
   for (const section of pageSections) {
     const locale = section.locale ?? Locale.FR;
