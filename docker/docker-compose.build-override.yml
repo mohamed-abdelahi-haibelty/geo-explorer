@@ -8,12 +8,12 @@
 # real Prisma queries, but the committed docker-compose.yml never publishes
 # one at runtime.
 #
-# `tools` is the same `builder` stage `app`'s Dockerfile already builds (has
-# `prisma` and `tsx`, which the slim `runner` image deliberately doesn't) —
-# tagged as its own buildable target so `migrate deploy`, the seed, and
-# scripts/create-admin.ts run via `docker compose run --rm tools <cmd>`
-# instead of installing dev tooling into the image that actually serves
-# traffic.
+# `tools` builds the Dockerfile's `toolsbase` stage (has `prisma` and `tsx`,
+# which the slim `runner` image deliberately doesn't, and stops before
+# `next build` so it doesn't need migrations applied yet) — its own buildable
+# target so `migrate deploy`, the seed, and scripts/create-admin.ts run via
+# `docker compose run --rm tools <cmd>` instead of installing dev tooling
+# into the image that actually serves traffic.
 services:
   db:
     ports:
@@ -23,10 +23,9 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-      target: builder
+      target: toolsbase
       network: host
       args:
-        NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:?set it in docker/.env}
         DATABASE_URL: postgresql://${POSTGRES_USER:-geoexplorer}:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in docker/.env}@localhost:5432/${POSTGRES_DB:-geoexplorer}
     env_file:
       - ../.env

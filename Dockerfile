@@ -9,14 +9,16 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-FROM base AS builder
+# Stops right after `prisma generate` — no `next build`, so no dependency on
+# migrations having been applied yet. This is what the `tools` service (see
+# docker-compose.build-override.yml) builds: `prisma migrate deploy`, the
+# seed and scripts/create-admin.ts only need Prisma + tsx, not a compiled
+# Next.js app, and building the full `builder` stage here would require
+# tables that migrate deploy hasn't created yet.
+FROM base AS toolsbase
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Baked into the client bundle at build time — must be the real value.
-ARG NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-ENV NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=$NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 
 # generateStaticParams for /[locale]/services/[slug], /[locale]/articles/[slug]
 # and /[locale]/actualites/[slug] runs real Prisma queries during `next build`
@@ -25,6 +27,14 @@ ENV NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=$NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 # with `--network=host` and a real --build-arg DATABASE_URL.
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
+
+RUN npx prisma generate
+
+FROM toolsbase AS builder
+
+# Baked into the client bundle at build time — must be the real value.
+ARG NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+ENV NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=$NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 
 # server/env.ts parses the rest at module scope too, so every route that
 # imports it (directly or transitively) needs them to exist and be
@@ -43,7 +53,6 @@ ENV BETTER_AUTH_SECRET="build-time-placeholder" \
     CONTACT_FROM_EMAIL="build@example.com" \
     NEXT_TELEMETRY_DISABLED=1
 
-RUN npx prisma generate
 RUN npm run build
 
 FROM base AS runner
