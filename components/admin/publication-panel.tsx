@@ -66,6 +66,7 @@ export function PublicationPanel({
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const activeSummary = summaries[activeLocale];
+  const isPublished = activeSummary.status === "PUBLISHED";
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4">
@@ -100,16 +101,31 @@ export function PublicationPanel({
           {saveLabel}
         </p>
 
+        {/* The label follows the active locale's status. Saving a published
+            translation keeps it published and invalidates its cache tags, so
+            the change is live straight away — but a button that always read
+            "Enregistrer le brouillon" implied the opposite, and the way to be
+            sure became dépublier → republier. */}
         <Button type="button" variant="outline" onClick={onSave} disabled={saving}>
-          {saving ? "Enregistrement…" : "Enregistrer le brouillon"}
+          {saving
+            ? "Enregistrement…"
+            : isPublished
+              ? "Enregistrer les modifications"
+              : "Enregistrer le brouillon"}
         </Button>
+        {isPublished && (
+          <p className="text-xs text-muted-foreground">
+            Cette langue est en ligne : l&apos;enregistrement met à jour la page publiée immédiatement — inutile de
+            dépublier puis republier.
+          </p>
+        )}
         {onPreview && (
           <Button type="button" variant="outline" onClick={onPreview} disabled={saving}>
             <Eye aria-hidden="true" />
             Prévisualiser
           </Button>
         )}
-        {activeSummary.status === "PUBLISHED" ? (
+        {isPublished ? (
           <Button type="button" variant="secondary" onClick={onUnpublish} disabled={publishing}>
             <Undo2 aria-hidden="true" />
             Dépublier
