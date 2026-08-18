@@ -16,16 +16,14 @@ export async function AdminGate({ children }: { children: React.ReactNode }) {
   }
 
   // Set by proxy.ts on every /admin/* request — avoids a DB round trip here
-  // just to know whether we're already on the password-change screen, and
-  // doubles as the active-nav-item signal for AdminShell.
+  // just to know whether we're already on the password-change screen. It is
+  // deliberately NOT used for the sidebar's active item: this layout does not
+  // re-render on client-side navigations, so the value goes stale the moment
+  // the admin navigates (AdminNavLink reads usePathname() instead).
   const pathname = requestHeaders.get("x-pathname") ?? "/admin";
   if (session.user.mustChangePassword && pathname !== PASSWORD_CHANGE_PATH) {
     redirect(PASSWORD_CHANGE_PATH);
   }
 
-  return (
-    <AdminShell user={session.user} pathname={pathname}>
-      {children}
-    </AdminShell>
-  );
+  return <AdminShell user={session.user}>{children}</AdminShell>;
 }

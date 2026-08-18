@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   FileText,
@@ -13,13 +12,13 @@ import {
   Users,
 } from "lucide-react";
 import { getDashboardCounts } from "@/server/queries/dashboard";
+import { AdminNavLink } from "@/components/admin/admin-nav-link";
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuBadge,
-  SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
@@ -51,12 +50,7 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-function isActive(pathname: string, href: string) {
-  if (href === "/admin") return pathname === "/admin";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-export async function AdminNav({ pathname }: { pathname: string }) {
+export async function AdminNav() {
   const { unreadMessages } = await getDashboardCounts();
 
   return (
@@ -71,20 +65,15 @@ export async function AdminNav({ pathname }: { pathname: string }) {
           <SidebarGroupContent>
             <SidebarMenu>
               {section.items.map((item) => {
-                const active = isActive(pathname, item.href);
                 const Icon = item.icon;
                 const badge = item.href === "/admin/messages" ? unreadMessages : 0;
 
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      render={<Link href={item.href} aria-current={active ? "page" : undefined} />}
-                      isActive={active}
-                      tooltip={item.label}
-                    >
+                    <AdminNavLink href={item.href} label={item.label}>
                       <Icon aria-hidden="true" />
                       <span>{item.label}</span>
-                    </SidebarMenuButton>
+                    </AdminNavLink>
                     {badge > 0 && <SidebarMenuBadge>{badge}</SidebarMenuBadge>}
                   </SidebarMenuItem>
                 );

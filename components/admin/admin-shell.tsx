@@ -56,11 +56,9 @@ function BrandMark() {
 
 export async function AdminShell({
   user,
-  pathname,
   children,
 }: {
   user: { name: string; email: string };
-  pathname: string;
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
@@ -79,7 +77,7 @@ export async function AdminShell({
           </SidebarHeader>
 
           <SidebarContent>
-            <AdminNav pathname={pathname} />
+            <AdminNav />
           </SidebarContent>
 
           <SidebarFooter className="gap-3 p-3 group-data-[collapsible=icon]:p-2">
