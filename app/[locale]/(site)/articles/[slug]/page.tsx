@@ -6,7 +6,6 @@ import { CldImage } from "@/components/media/cld-image";
 import { ArticlePdfLink } from "@/components/site/article-pdf-link";
 import { AuthorBlock } from "@/components/site/author-block";
 import { TocNav } from "@/components/site/toc-nav";
-import { ShareLinks } from "@/components/site/share-links";
 import { ArticleCard } from "@/components/site/article-card";
 import { ViewCounter } from "@/components/site/view-counter";
 import { SpectralBandRow } from "@/components/site/spectral-bands";
@@ -41,10 +40,6 @@ const DICT: Record<
     pdf: (size: string) => string;
     toc: string;
     related: string;
-    share: string;
-    shareLinkedin: string;
-    shareWhatsapp: string;
-    shareEmail: string;
   }
 > = {
   fr: {
@@ -53,10 +48,6 @@ const DICT: Record<
     pdf: (size) => `Étude complète (PDF · ${size})`,
     toc: "Sommaire",
     related: "À lire aussi",
-    share: "Partager",
-    shareLinkedin: "Partager sur LinkedIn",
-    shareWhatsapp: "Partager sur WhatsApp",
-    shareEmail: "Partager par e-mail",
   },
   en: {
     back: "Back to articles",
@@ -64,10 +55,6 @@ const DICT: Record<
     pdf: (size) => `Full study (PDF · ${size})`,
     toc: "Contents",
     related: "Related reading",
-    share: "Share",
-    shareLinkedin: "Share on LinkedIn",
-    shareWhatsapp: "Share on WhatsApp",
-    shareEmail: "Share by email",
   },
   ar: {
     back: "العودة إلى المقالات",
@@ -75,10 +62,6 @@ const DICT: Record<
     pdf: (size) => `الدراسة الكاملة (PDF · ${size})`,
     toc: "المحتويات",
     related: "مقالات ذات صلة",
-    share: "مشاركة",
-    shareLinkedin: "مشاركة على LinkedIn",
-    shareWhatsapp: "مشاركة على واتساب",
-    shareEmail: "مشاركة عبر البريد الإلكتروني",
   },
 };
 
@@ -155,8 +138,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
   const article = await loadArticle(typedLocale, slug);
 
   const tagIds = article.tags.map(({ tag }) => tag.id);
-  const [availableLocales, related, siteUrl] = await Promise.all([
-    getPublishedLocalesForArticle(article.articleId),
+  const [related, siteUrl] = await Promise.all([
     listRelatedArticlesPublic({ locale: typedLocale, articleId: article.articleId, tagIds }),
     getSiteUrl(),
   ]);
@@ -188,33 +170,17 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       <ViewCounter articleId={article.articleId} />
 
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-10 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <NextLink
-              href={`/${typedLocale}/articles`}
-              className="flex w-fit items-center gap-1.5 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <BackIcon aria-hidden="true" className="size-3.5" />
-              {t.back}
-            </NextLink>
-
-            {availableLocales.length > 1 && (
-              <nav className="flex gap-3 font-mono text-xs text-muted-foreground">
-                {/* Plain next/link — see the identical note in (site)/layout.tsx's
-                    switcher on why next-intl's Link isn't used for cross-locale hrefs. */}
-                {availableLocales.map((entry) => (
-                  <NextLink
-                    key={entry.locale}
-                    href={`/${entry.locale}/articles/${entry.slug}`}
-                    aria-current={entry.locale === typedLocale ? "true" : undefined}
-                    className={entry.locale === typedLocale ? "font-semibold text-foreground" : "hover:text-foreground"}
-                  >
-                    {entry.locale.toUpperCase()}
-                  </NextLink>
-                ))}
-              </nav>
-            )}
-          </div>
+        <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-10 pb-12 sm:px-6">
+          {/* No per-article locale switcher here — the header's LanguageSwitcher
+              is the single place language is changed. generateMetadata still
+              emits the hreflang alternates for the translations that exist. */}
+          <NextLink
+            href={`/${typedLocale}/articles`}
+            className="flex w-fit items-center gap-1.5 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <BackIcon aria-hidden="true" className="size-3.5" />
+            {t.back}
+          </NextLink>
 
           <div className="flex flex-col gap-3">
             <h1 className="text-balance font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
@@ -246,13 +212,11 @@ export default async function ArticleDetailPage({ params }: PageProps) {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 pb-8">
-            {article.pdfUrl && <ArticlePdfLink url={article.pdfUrl} label={t.pdf(formatFileSize(article.pdfBytes ?? 0, typedLocale))} />}
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs text-muted-foreground">{t.share}</span>
-              <ShareLinks url={canonicalUrl} title={article.title} labels={{ linkedin: t.shareLinkedin, whatsapp: t.shareWhatsapp, email: t.shareEmail }} />
+          {article.pdfUrl && (
+            <div className="flex flex-wrap items-center gap-3">
+              <ArticlePdfLink url={article.pdfUrl} label={t.pdf(formatFileSize(article.pdfBytes ?? 0, typedLocale))} />
             </div>
-          </div>
+          )}
         </div>
       </header>
 
