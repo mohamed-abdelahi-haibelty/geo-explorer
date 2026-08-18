@@ -22,6 +22,16 @@ const LOCALE_LABEL: Record<LocaleCode, string> = { fr: "FR", en: "EN", ar: "AR" 
 export function ServiceList({ services: initialServices }: { services: ServiceRow[] }) {
   const [services, setServices] = useState(initialServices);
 
+  // Re-seed whenever the server sends a new list — see the identical note in
+  // PartnerList: the optimistic local copy otherwise swallows every
+  // router.refresh() after a create/edit/delete, leaving the table stale
+  // until a manual page reload.
+  const [seededServices, setSeededServices] = useState(initialServices);
+  if (seededServices !== initialServices) {
+    setSeededServices(initialServices);
+    setServices(initialServices);
+  }
+
   const { move, dragHandlers, isDropTarget } = useDragReorder(services, (next) => {
     setServices(next);
     reorderServicesAction({ orderedIds: next.map((service) => service.id) });

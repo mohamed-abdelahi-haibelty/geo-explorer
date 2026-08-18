@@ -23,6 +23,19 @@ type PartnerRow = Awaited<ReturnType<typeof listPartnersAdmin>>[number];
 export function PartnerList({ partners: initialPartners }: { partners: PartnerRow[] }) {
   const [partners, setPartners] = useState(initialPartners);
 
+  // The local copy exists only so reorder/publish toggles can paint
+  // optimistically — it must still follow the server. Without this, the
+  // useState initializer pinned the very first render's rows forever and a
+  // create/edit/delete's router.refresh() re-rendered this component with
+  // fresh props that were silently ignored, so the table only ever changed
+  // after a full page reload. Adjusting state during render on a changed prop
+  // is React's documented alternative to syncing in an effect.
+  const [seededPartners, setSeededPartners] = useState(initialPartners);
+  if (seededPartners !== initialPartners) {
+    setSeededPartners(initialPartners);
+    setPartners(initialPartners);
+  }
+
   const { move, dragHandlers, isDropTarget } = useDragReorder(partners, (next) => {
     setPartners(next);
     reorderPartnersAction({ orderedIds: next.map((partner) => partner.id) });
