@@ -21,7 +21,12 @@ export default async function NewArticlePage() {
         Retour aux articles
       </Link>
       <h1 className="font-heading text-2xl text-foreground">Nouvel article</h1>
+      {/* key: the edit route renders this same component in the same tree
+          position, so React reconciles the two as one instance and keeps its
+          state — opening "new" straight from an edit page inherited the
+          previous record's drafts. A differing key forces a fresh mount. */}
       <ArticleForm
+        key="new"
         article={null}
         authorSuggestions={authors.map((author) => ({
           id: author.id,

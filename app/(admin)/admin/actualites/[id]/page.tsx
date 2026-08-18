@@ -30,7 +30,9 @@ export default async function EditActualitePage({ params }: { params: Promise<{ 
         Retour aux actualités
       </Link>
       <h1 className="font-heading text-2xl text-foreground">{heading}</h1>
-      <NewsForm news={news} />
+      {/* key — see the note on the sibling "nouveau" page: without it,
+          navigating between two records reuses one form instance. */}
+      <NewsForm key={news.id} news={news} />
     </div>
   );
 }

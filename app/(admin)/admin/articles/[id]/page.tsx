@@ -33,7 +33,10 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
         Retour aux articles
       </Link>
       <h1 className="font-heading text-2xl text-foreground">{heading}</h1>
+      {/* key — see the note on the sibling "nouveau" page: without it,
+          navigating between two records reuses one form instance. */}
       <ArticleForm
+        key={article.id}
         article={article}
         authorSuggestions={authors.map((author) => ({
           id: author.id,
