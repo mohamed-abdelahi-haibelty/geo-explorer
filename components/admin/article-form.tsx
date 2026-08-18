@@ -68,6 +68,10 @@ type TranslationDraft = {
   saveLabel: string;
 };
 
+// The text fields the admin types into — compared before and after a save to
+// tell whether anything changed while the request was in flight.
+const EDITABLE_FIELDS = ["title", "subtitle", "slug", "excerpt", "metaTitle", "metaDescription"] as const;
+
 function emptyDraft(): TranslationDraft {
   return {
     translationId: null,
@@ -223,9 +227,40 @@ export function ArticleForm({
         conflict: null,
         saveLabel: `Enregistré à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}.`,
       };
-      setDrafts((prev) => ({ ...prev, [locale]: nextDraft }));
+      // Merge onto the *latest* state rather than onto `current`, which is a
+      // snapshot taken before the round trip: writing it back wholesale
+      // reverted every keystroke entered while the request was in flight, so
+      // a save landing mid-sentence silently undid the last word. Edits made
+      // meanwhile survive, and the draft stays marked unsaved.
+      setDrafts((prev) => {
+        const latest = prev[locale];
+        const editedDuringSave = EDITABLE_FIELDS.some((field) => latest[field] !== current[field]);
+        return {
+          ...prev,
+          [locale]: {
+            ...latest,
+            translationId: nextDraft.translationId,
+            // The server canonicalises the slug; only take its version back if
+            // the admin didn't retype the field while the save was running.
+            slug: latest.slug === current.slug ? nextDraft.slug : latest.slug,
+            status: nextDraft.status,
+            lastKnownUpdatedAt: nextDraft.lastKnownUpdatedAt,
+            dirty: editedDuringSave,
+            saving: false,
+            conflict: null,
+            saveLabel: editedDuringSave ? "Modifications non enregistrées." : nextDraft.saveLabel,
+          },
+        };
+      });
       if (!article && !articleId) {
-        router.replace(`/admin/articles/${result.data.articleId}`);
+        // The first save of a brand-new article turns /nouveau into a real
+        // /:id URL. router.replace() did that by *navigating*, which remounts
+        // this form against the server payload and throws away every keystroke
+        // entered since the save fired — a subtitle being typed just vanished
+        // mid-word. The native history API updates the address bar without
+        // re-rendering the route, and Next syncs its own router state from it
+        // (App Router, "Native History API").
+        window.history.replaceState(null, "", `/admin/articles/${result.data.articleId}`);
       }
       return nextDraft;
     }
@@ -234,7 +269,7 @@ export function ArticleForm({
     if (result.code === "CONFLICT") {
       updateDraft(locale, {
         conflict: { updatedAt: result.fields?.updatedAt ?? new Date().toISOString() },
-        saveLabel: "Conflit détecté — l'enregistrement automatique est en pause.",
+        saveLabel: "Conflit détecté — rechargez ou forcez l'enregistrement.",
       });
     } else {
       setErrorMessage(result.message);
@@ -243,29 +278,19 @@ export function ArticleForm({
     return null;
   }
 
-  // Three independent 30s-debounce autosave timers, one per locale — a dirty
-  // EN tab keeps counting down even while the admin is looking at FR.
-  // Unrolled per-locale rather than a loop: the set of
-  // locales is fixed, so three static hook call sites are exactly as valid
-  // as one, and each effect's dependency array stays precise.
+  // Nothing saves on its own any more, so warn before the tab closes or the
+  // browser navigates away while a locale still holds unsaved edits. Does not
+  // cover in-app <Link> navigation — the browser gives no hook for that.
+  const hasUnsavedChanges = LOCALES.some((locale) => drafts[locale].dirty);
   useEffect(() => {
-    if (!drafts.fr.dirty || drafts.fr.conflict) return;
-    const timeout = setTimeout(() => performSave("fr"), 30000);
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drafts.fr.dirty, drafts.fr.conflict]);
-  useEffect(() => {
-    if (!drafts.en.dirty || drafts.en.conflict) return;
-    const timeout = setTimeout(() => performSave("en"), 30000);
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drafts.en.dirty, drafts.en.conflict]);
-  useEffect(() => {
-    if (!drafts.ar.dirty || drafts.ar.conflict) return;
-    const timeout = setTimeout(() => performSave("ar"), 30000);
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drafts.ar.dirty, drafts.ar.conflict]);
+    if (!hasUnsavedChanges) return;
+    function warn(event: BeforeUnloadEvent) {
+      event.preventDefault();
+    }
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [hasUnsavedChanges]);
+
 
   async function handleReloadNewer(locale: LocaleCode) {
     if (!articleId) return;
@@ -299,7 +324,15 @@ export function ArticleForm({
     setPublishing(true);
     const result = await publishArticleAction(saved.translationId);
     setPublishing(false);
-    if (result.ok) updateDraft(activeLocale, { status: "PUBLISHED", publishedAt: new Date() });
+    // lastKnownUpdatedAt must follow the publish write too, or the next
+    // save sends a timestamp the server has already moved past and the
+    // form reports a conflict against a change this same client made.
+    if (result.ok)
+      updateDraft(activeLocale, {
+        status: "PUBLISHED",
+        publishedAt: new Date(),
+        lastKnownUpdatedAt: result.data.updatedAt,
+      });
     else setErrorMessage(result.message);
   }
 
@@ -309,7 +342,7 @@ export function ArticleForm({
     setPublishing(true);
     const result = await unpublishArticleAction(translationId);
     setPublishing(false);
-    if (result.ok) updateDraft(activeLocale, { status: "DRAFT" });
+    if (result.ok) updateDraft(activeLocale, { status: "DRAFT", lastKnownUpdatedAt: result.data.updatedAt });
     else setErrorMessage(result.message);
   }
 
@@ -363,8 +396,7 @@ export function ArticleForm({
               {d.conflict && (
                 <div role="alert" className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-foreground">
-                    Cette traduction a été modifiée ailleurs depuis son chargement. L&apos;enregistrement
-                    automatique est en pause.
+                    Cette traduction a été modifiée ailleurs depuis son chargement.
                   </span>
                   <div className="flex shrink-0 gap-2">
                     <Button type="button" size="sm" variant="outline" onClick={() => handleReloadNewer(locale)}>

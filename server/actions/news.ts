@@ -277,7 +277,7 @@ export async function updateNewsAction(input: unknown): Promise<ActionResult<Sav
   });
 }
 
-export async function publishNewsAction(translationId: string): Promise<ActionResult<null>> {
+export async function publishNewsAction(translationId: string): Promise<ActionResult<{ updatedAt: string }>> {
   return runAction(async () => {
     const parsed = publishNewsSchema.safeParse({ translationId });
     if (!parsed.success) throw new AppError("VALIDATION", "Requête invalide.");
@@ -301,11 +301,16 @@ export async function publishNewsAction(translationId: string): Promise<ActionRe
     revalidatePath("/");
     await logAudit({ userId: user.id, action: "news.publish", entity: "News", entityId: existing.newsId, diff: { locale } });
 
-    return null;
+    // The publish/unpublish write bumps `updatedAt` (Prisma @updatedAt), so
+    // the caller's copy is now stale. Returning the new value lets the form
+    // refresh its optimistic-concurrency token — without it the very next
+    // autosave compared an old timestamp against the row this same client
+    // had just written and reported a bogus "modifiée ailleurs" conflict.
+    return { updatedAt: translation.updatedAt.toISOString() };
   });
 }
 
-export async function unpublishNewsAction(translationId: string): Promise<ActionResult<null>> {
+export async function unpublishNewsAction(translationId: string): Promise<ActionResult<{ updatedAt: string }>> {
   return runAction(async () => {
     const parsed = unpublishNewsSchema.safeParse({ translationId });
     if (!parsed.success) throw new AppError("VALIDATION", "Requête invalide.");
@@ -329,7 +334,12 @@ export async function unpublishNewsAction(translationId: string): Promise<Action
       diff: { locale },
     });
 
-    return null;
+    // The publish/unpublish write bumps `updatedAt` (Prisma @updatedAt), so
+    // the caller's copy is now stale. Returning the new value lets the form
+    // refresh its optimistic-concurrency token — without it the very next
+    // autosave compared an old timestamp against the row this same client
+    // had just written and reported a bogus "modifiée ailleurs" conflict.
+    return { updatedAt: translation.updatedAt.toISOString() };
   });
 }
 

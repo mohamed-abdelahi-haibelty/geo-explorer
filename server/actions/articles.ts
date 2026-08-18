@@ -300,7 +300,7 @@ export async function updateArticleAction(input: unknown): Promise<ActionResult<
   });
 }
 
-export async function publishArticleAction(translationId: string): Promise<ActionResult<null>> {
+export async function publishArticleAction(translationId: string): Promise<ActionResult<{ updatedAt: string }>> {
   return runAction(async () => {
     const parsed = publishArticleSchema.safeParse({ translationId });
     if (!parsed.success) throw new AppError("VALIDATION", "Requête invalide.");
@@ -329,11 +329,16 @@ export async function publishArticleAction(translationId: string): Promise<Actio
       diff: { locale },
     });
 
-    return null;
+    // The publish/unpublish write bumps `updatedAt` (Prisma @updatedAt), so
+    // the caller's copy is now stale. Returning the new value lets the form
+    // refresh its optimistic-concurrency token — without it the very next
+    // autosave compared an old timestamp against the row this same client
+    // had just written and reported a bogus "modifiée ailleurs" conflict.
+    return { updatedAt: translation.updatedAt.toISOString() };
   });
 }
 
-export async function unpublishArticleAction(translationId: string): Promise<ActionResult<null>> {
+export async function unpublishArticleAction(translationId: string): Promise<ActionResult<{ updatedAt: string }>> {
   return runAction(async () => {
     const parsed = unpublishArticleSchema.safeParse({ translationId });
     if (!parsed.success) throw new AppError("VALIDATION", "Requête invalide.");
@@ -356,7 +361,12 @@ export async function unpublishArticleAction(translationId: string): Promise<Act
       diff: { locale },
     });
 
-    return null;
+    // The publish/unpublish write bumps `updatedAt` (Prisma @updatedAt), so
+    // the caller's copy is now stale. Returning the new value lets the form
+    // refresh its optimistic-concurrency token — without it the very next
+    // autosave compared an old timestamp against the row this same client
+    // had just written and reported a bogus "modifiée ailleurs" conflict.
+    return { updatedAt: translation.updatedAt.toISOString() };
   });
 }
 

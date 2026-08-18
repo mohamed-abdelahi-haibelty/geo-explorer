@@ -70,6 +70,10 @@ type TranslationDraft = {
   saveLabel: string;
 };
 
+// The text fields the admin types into — compared before and after a save to
+// tell whether anything changed while the request was in flight.
+const EDITABLE_FIELDS = ["title", "slug", "excerpt", "metaTitle", "metaDescription"] as const;
+
 function emptyDraft(): TranslationDraft {
   return {
     translationId: null,
@@ -213,9 +217,31 @@ export function NewsForm({ news }: { news: NewsForEdit | null }) {
         conflict: null,
         saveLabel: `Enregistré à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}.`,
       };
-      setDrafts((prev) => ({ ...prev, [locale]: nextDraft }));
+      // Merge onto the latest state, not onto the pre-request snapshot — see
+      // the fuller note in ArticleForm: writing `current` back wholesale
+      // reverted anything typed while the save was in flight.
+      setDrafts((prev) => {
+        const latest = prev[locale];
+        const editedDuringSave = EDITABLE_FIELDS.some((field) => latest[field] !== current[field]);
+        return {
+          ...prev,
+          [locale]: {
+            ...latest,
+            translationId: nextDraft.translationId,
+            slug: latest.slug === current.slug ? nextDraft.slug : latest.slug,
+            status: nextDraft.status,
+            lastKnownUpdatedAt: nextDraft.lastKnownUpdatedAt,
+            dirty: editedDuringSave,
+            saving: false,
+            conflict: null,
+            saveLabel: editedDuringSave ? "Modifications non enregistrées." : nextDraft.saveLabel,
+          },
+        };
+      });
       if (!news && !newsId) {
-        router.replace(`/admin/actualites/${result.data.newsId}`);
+        // Same reason as ArticleForm: navigating here would remount the form
+        // on the first save and discard whatever was being typed.
+        window.history.replaceState(null, "", `/admin/actualites/${result.data.newsId}`);
       }
       return nextDraft;
     }
@@ -224,7 +250,7 @@ export function NewsForm({ news }: { news: NewsForEdit | null }) {
     if (result.code === "CONFLICT") {
       updateDraft(locale, {
         conflict: { updatedAt: result.fields?.updatedAt ?? new Date().toISOString() },
-        saveLabel: "Conflit détecté — l'enregistrement automatique est en pause.",
+        saveLabel: "Conflit détecté — rechargez ou forcez l'enregistrement.",
       });
     } else {
       setErrorMessage(result.message);
@@ -234,27 +260,19 @@ export function NewsForm({ news }: { news: NewsForEdit | null }) {
     return null;
   }
 
-  // Three independent 30s-debounce autosave timers, one per locale — same
-  // pattern as ArticleForm (a dirty EN tab keeps counting down even while
-  // the admin is looking at FR).
+  // Nothing saves on its own any more, so warn before the tab closes or the
+  // browser navigates away while a locale still holds unsaved edits. Does not
+  // cover in-app <Link> navigation — the browser gives no hook for that.
+  const hasUnsavedChanges = LOCALES.some((locale) => drafts[locale].dirty);
   useEffect(() => {
-    if (!drafts.fr.dirty || drafts.fr.conflict) return;
-    const timeout = setTimeout(() => performSave("fr"), 30000);
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drafts.fr.dirty, drafts.fr.conflict]);
-  useEffect(() => {
-    if (!drafts.en.dirty || drafts.en.conflict) return;
-    const timeout = setTimeout(() => performSave("en"), 30000);
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drafts.en.dirty, drafts.en.conflict]);
-  useEffect(() => {
-    if (!drafts.ar.dirty || drafts.ar.conflict) return;
-    const timeout = setTimeout(() => performSave("ar"), 30000);
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drafts.ar.dirty, drafts.ar.conflict]);
+    if (!hasUnsavedChanges) return;
+    function warn(event: BeforeUnloadEvent) {
+      event.preventDefault();
+    }
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [hasUnsavedChanges]);
+
 
   async function handleReloadNewer(locale: LocaleCode) {
     if (!newsId) return;
@@ -288,7 +306,15 @@ export function NewsForm({ news }: { news: NewsForEdit | null }) {
     setPublishing(true);
     const result = await publishNewsAction(saved.translationId);
     setPublishing(false);
-    if (result.ok) updateDraft(activeLocale, { status: "PUBLISHED", publishedAt: new Date() });
+    // lastKnownUpdatedAt must follow the publish write too, or the next
+    // save sends a timestamp the server has already moved past and the
+    // form reports a conflict against a change this same client made.
+    if (result.ok)
+      updateDraft(activeLocale, {
+        status: "PUBLISHED",
+        publishedAt: new Date(),
+        lastKnownUpdatedAt: result.data.updatedAt,
+      });
     else setErrorMessage(result.message);
   }
 
@@ -298,7 +324,7 @@ export function NewsForm({ news }: { news: NewsForEdit | null }) {
     setPublishing(true);
     const result = await unpublishNewsAction(translationId);
     setPublishing(false);
-    if (result.ok) updateDraft(activeLocale, { status: "DRAFT" });
+    if (result.ok) updateDraft(activeLocale, { status: "DRAFT", lastKnownUpdatedAt: result.data.updatedAt });
     else setErrorMessage(result.message);
   }
 
@@ -343,8 +369,7 @@ export function NewsForm({ news }: { news: NewsForEdit | null }) {
               {d.conflict && (
                 <div role="alert" className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-foreground">
-                    Cette traduction a été modifiée ailleurs depuis son chargement. L&apos;enregistrement
-                    automatique est en pause.
+                    Cette traduction a été modifiée ailleurs depuis son chargement.
                   </span>
                   <div className="flex shrink-0 gap-2">
                     <Button type="button" size="sm" variant="outline" onClick={() => handleReloadNewer(locale)}>
