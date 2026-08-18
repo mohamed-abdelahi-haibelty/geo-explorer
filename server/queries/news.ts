@@ -110,6 +110,31 @@ export async function listLatestNewsPublic(locale: LocaleCode, limit = 3) {
   });
 }
 
+// The detail page's closing "more news" strip — mirrors
+// listRelatedArticlesPublic's role on articles/[slug]. News has no tags to
+// score affinity on, so "related" is simply the next most recent items;
+// NEWS_LIST_SELECT keeps the cards identical to the index's.
+export async function listRelatedNewsPublic({
+  locale,
+  newsId,
+  limit = 3,
+}: {
+  locale: LocaleCode;
+  newsId: string;
+  limit?: number;
+}) {
+  "use cache";
+  cacheLife(CACHE_PROFILE);
+  cacheTag(TAGS.newsList(locale));
+
+  return db.newsTranslation.findMany({
+    where: { locale: toDbLocale(locale), status: "PUBLISHED", news: { id: { not: newsId } } },
+    orderBy: { publishedAt: "desc" },
+    take: limit,
+    select: NEWS_LIST_SELECT,
+  });
+}
+
 // Full record for the tab UI — all translations plus the shared gallery
 // mounted at once, one round trip (mirrors getArticleForEdit).
 export async function getNewsForEdit(id: string) {

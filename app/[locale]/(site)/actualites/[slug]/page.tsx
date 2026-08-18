@@ -6,11 +6,14 @@ import { ArrowLeft, ArrowRight, MapPin } from "lucide-react";
 import { CldImage } from "@/components/media/cld-image";
 import { SpectralBandRow } from "@/components/site/spectral-bands";
 import { CloudinaryVideo } from "@/components/site/cloudinary-video";
+import { NewsCard } from "@/components/site/news-card";
+import { ScrollRevealGroup } from "@/components/site/scroll-reveal";
 import {
   getNewsBySlugForPublic,
   getNewsTranslationBySlugAnyLocale,
   getPublishedLocalesForNews,
   listPublishedNewsSlugsForStaticParams,
+  listRelatedNewsPublic,
 } from "@/server/queries/news";
 import { pickLocalizedText } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
@@ -33,10 +36,25 @@ const ExternalVideoEmbed = dynamic(() => import("@/components/site/external-vide
 // page deliberately stays outside <Suspense> (see the note on the default
 // export below) so redirect() can set a real HTTP 307, matching
 // articles/[slug] and services/[slug]'s identical constraint.
-const DICT: Record<LocaleCode, { back: string; gallery: string; playVideo: string; lightboxClose: string; lightboxPrevious: string; lightboxNext: string; lightboxOpen: string }> = {
+const DICT: Record<
+  LocaleCode,
+  {
+    back: string;
+    gallery: string;
+    more: string;
+    videoBadge: string;
+    playVideo: string;
+    lightboxClose: string;
+    lightboxPrevious: string;
+    lightboxNext: string;
+    lightboxOpen: string;
+  }
+> = {
   fr: {
     back: "Retour aux actualités",
     gallery: "Galerie",
+    more: "Autres actualités",
+    videoBadge: "Vidéo",
     playVideo: "Lire la vidéo",
     lightboxClose: "Fermer",
     lightboxPrevious: "Image précédente",
@@ -46,6 +64,8 @@ const DICT: Record<LocaleCode, { back: string; gallery: string; playVideo: strin
   en: {
     back: "Back to news",
     gallery: "Gallery",
+    more: "More news",
+    videoBadge: "Video",
     playVideo: "Play video",
     lightboxClose: "Close",
     lightboxPrevious: "Previous image",
@@ -55,6 +75,8 @@ const DICT: Record<LocaleCode, { back: string; gallery: string; playVideo: strin
   ar: {
     back: "العودة إلى الأخبار",
     gallery: "معرض الصور",
+    more: "أخبار أخرى",
+    videoBadge: "فيديو",
     playVideo: "تشغيل الفيديو",
     lightboxClose: "إغلاق",
     lightboxPrevious: "الصورة السابقة",
@@ -119,8 +141,17 @@ export default async function NewsDetailPage({ params }: PageProps) {
   const isRtl = typedLocale === "ar";
   const news = await loadNews(typedLocale, slug);
 
-  const [availableLocales, siteUrl] = await Promise.all([getPublishedLocalesForNews(news.id), getSiteUrl()]);
+  const [siteUrl, moreNews] = await Promise.all([
+    getSiteUrl(),
+    listRelatedNewsPublic({ locale: typedLocale, newsId: news.id }),
+  ]);
   const BackIcon = isRtl ? ArrowRight : ArrowLeft;
+
+  // eventDate is the editorial truth for an event; publishedAt is the
+  // fallback for a plain announcement. Rendering nothing when both are absent
+  // beats the previous `?? new Date()`, which silently stamped today's date
+  // onto an item that had never actually been dated.
+  const displayDate = news.eventDate ?? news.publishedAt;
 
   const imageItems = news.media.filter((item) => item.media.type === "IMAGE");
   const videoItems = news.media.filter((item) => item.media.type === "VIDEO");
@@ -147,49 +178,41 @@ export default async function NewsDetailPage({ params }: PageProps) {
   ]);
 
   return (
-    <article className="flex flex-col gap-12 pb-20">
+    <article className="flex flex-col pb-20">
       <JsonLd data={jsonLdGraph([newsSchema, breadcrumbSchema])} />
+      {/* pb-12 keeps the section hairline off the cover image, which it
+          previously sat flush against. */}
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-10 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <NextLink
-              href={`/${typedLocale}/actualites`}
-              className="flex w-fit items-center gap-1.5 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <BackIcon aria-hidden="true" className="size-3.5" />
-              {t.back}
-            </NextLink>
+        <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-10 pb-12 sm:px-6">
+          {/* No per-item locale switcher here — the header's LanguageSwitcher is
+              the single place language is changed; generateMetadata still emits
+              the hreflang alternates. */}
+          <NextLink
+            href={`/${typedLocale}/actualites`}
+            className="flex w-fit items-center gap-1.5 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <BackIcon aria-hidden="true" className="size-3.5" />
+            {t.back}
+          </NextLink>
 
-            {availableLocales.length > 1 && (
-              <nav className="flex gap-3 font-mono text-xs text-muted-foreground">
-                {availableLocales.map((entry) => (
-                  <NextLink
-                    key={entry.locale}
-                    href={`/${entry.locale}/actualites/${entry.slug}`}
-                    aria-current={entry.locale === typedLocale ? "true" : undefined}
-                    className={entry.locale === typedLocale ? "font-semibold text-foreground" : "hover:text-foreground"}
-                  >
-                    {entry.locale.toUpperCase()}
-                  </NextLink>
-                ))}
-              </nav>
+          {/* Title first, then the date/location line — the same order
+              articles/[slug] uses, and it keeps the metadata from reading as a
+              decorative eyebrow above the headline. */}
+          <h1 className="text-balance font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+            {news.title}
+          </h1>
+
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-sm font-medium text-secondary">
+            {displayDate && (
+              <time dateTime={displayDate.toISOString()}>{formatDate(displayDate, typedLocale)}</time>
             )}
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-sm font-medium text-secondary">
-              <span>{formatDate(news.eventDate ?? news.publishedAt ?? new Date(), typedLocale)}</span>
-              {news.location && (
-                <span className="flex items-center gap-1.5">
-                  <MapPin aria-hidden="true" className="size-3.5" />
-                  {news.location}
-                </span>
-              )}
-            </p>
-            <h1 className="text-balance font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-              {news.title}
-            </h1>
-          </div>
+            {news.location && (
+              <span className="flex items-center gap-1.5">
+                <MapPin aria-hidden="true" className="size-3.5" />
+                {news.location}
+              </span>
+            )}
+          </p>
 
           <div className="relative aspect-21/9 overflow-hidden rounded-2xl bg-muted">
             {news.cover ? (
@@ -208,14 +231,20 @@ export default async function NewsDetailPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* contentHtml is sanitized server-side at save time (server/services/content.ts) */}
-      <div className="article-content mx-auto w-full max-w-prose px-4 sm:px-6" dangerouslySetInnerHTML={{ __html: news.contentHtml }} />
+      {/* contentHtml is sanitized server-side at save time (server/services/content.ts).
+          The max-w-4xl track matches the header's, and the prose measure is
+          constrained *inside* it: centring max-w-prose on the page instead —
+          as this did — pushed the body text ~130px right of the title and
+          cover it belongs to, breaking the page's vertical spine. */}
+      <div className="mx-auto w-full max-w-4xl px-4 pt-12 sm:px-6">
+        <div className="article-content max-w-prose" dangerouslySetInnerHTML={{ __html: news.contentHtml }} />
+      </div>
 
       {/* A news item with no media renders with no gallery region at
           all — no heading, no empty container. */}
       {hasGallery && (
-        <section className="mx-auto w-full max-w-4xl px-4 sm:px-6">
-          <h2 className="mb-6 font-heading text-xl font-semibold text-foreground">{t.gallery}</h2>
+        <section className="mx-auto w-full max-w-4xl px-4 pt-16 sm:px-6">
+          <h2 className="mb-6 font-heading text-2xl font-semibold text-foreground">{t.gallery}</h2>
 
           {(videoItems.length > 0 || news.externalVideoUrl) && (
             <div className="mb-8 flex flex-col gap-8">
@@ -246,6 +275,21 @@ export default async function NewsDetailPage({ params }: PageProps) {
               }))}
             />
           )}
+        </section>
+      )}
+
+      {/* The page used to stop dead at the last paragraph, leaving the back
+          link at the very top as the only way onward. */}
+      {moreNews.length > 0 && (
+        <section className="mt-20 border-t border-border">
+          <div className="mx-auto max-w-6xl px-4 pt-14 sm:px-6">
+            <h2 className="mb-8 font-heading text-2xl font-semibold text-foreground">{t.more}</h2>
+            <ScrollRevealGroup className="grid gap-x-8 gap-y-10 sm:grid-cols-3">
+              {moreNews.map((item) => (
+                <NewsCard key={item.slug} item={item} locale={typedLocale} videoLabel={t.videoBadge} />
+              ))}
+            </ScrollRevealGroup>
+          </div>
         </section>
       )}
     </article>
