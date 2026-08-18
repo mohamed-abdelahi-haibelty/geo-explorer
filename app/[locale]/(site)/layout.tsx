@@ -1,10 +1,9 @@
+import { Suspense } from "react";
 import NextLink from "next/link";
 import Image from "next/image";
-import { ChevronDown } from "lucide-react";
 import { getSiteSetting } from "@/server/queries/settings";
 import { listServicesPublic } from "@/server/queries/services";
-import { MobileNav } from "@/components/site/mobile-nav";
-import { LanguageSwitcher } from "@/components/site/language-switcher";
+import { SiteNav, SiteNavBar } from "@/components/site/site-nav";
 import type { LocaleCode } from "@/lib/validation/locale";
 import logo from "@/public/assets/logo-mark.png";
 
@@ -100,14 +99,15 @@ export default async function SiteLayout({
     label: service.title,
     href: `/${currentLocale}/services/${service.slug}`,
   }));
-  const mobileEntries = [
-    navEntries[0],
-    navEntries[1],
-    { label: t.services, href: `/${currentLocale}/services` },
-    navEntries[2],
-    navEntries[3],
-    navEntries[4],
-  ];
+  const navProps = {
+    locale: currentLocale,
+    leading: [navEntries[0], navEntries[1]],
+    trailing: [navEntries[2], navEntries[3]],
+    contact: navEntries[4],
+    services: serviceEntries,
+    servicesHref: `/${currentLocale}/services`,
+    labels: { services: t.services, switcher: t.switcherLabel, menu: t.menuLabel, close: t.closeMenu },
+  };
 
   return (
     <>
@@ -121,76 +121,16 @@ export default async function SiteLayout({
             {companyName}
           </NextLink>
 
-          <nav aria-label={t.menuLabel} className="hidden items-center gap-1 text-sm font-medium text-foreground lg:flex">
-            <NextLink href={`/${currentLocale}`} className="rounded-lg px-3 py-2 transition-colors hover:bg-muted">
-              {t.home}
-            </NextLink>
-            <NextLink
-              href={`/${currentLocale}/a-propos`}
-              className="rounded-lg px-3 py-2 transition-colors hover:bg-muted"
-            >
-              {t.about}
-            </NextLink>
-
-            {/* Native <details> disclosure — no JS, fully keyboard operable,
-                matching the rule that only the mobile toggle and language
-                switcher are client components. Positioned absolute so the
-                panel never pushes the header's own layout. */}
-            <details className="group relative">
-              <summary className="flex cursor-pointer list-none items-center gap-1 rounded-lg px-3 py-2 transition-colors hover:bg-muted [&::-webkit-details-marker]:hidden">
-                {t.services}
-                <ChevronDown aria-hidden="true" className="size-3.5 transition-transform group-open:rotate-180" />
-              </summary>
-              <div className="absolute start-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-border bg-popover shadow-lg">
-                <ul className="flex flex-col p-1.5">
-                  {serviceEntries.map((service, index) => (
-                    <li key={service.href}>
-                      <NextLink
-                        href={service.href}
-                        className="flex items-baseline gap-2.5 rounded-lg px-3 py-2 text-sm text-foreground/90 transition-colors hover:bg-muted hover:text-foreground"
-                      >
-                        <span className="font-mono text-[10px] text-muted-foreground tabular-nums">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
-                        {service.label}
-                      </NextLink>
-                    </li>
-                  ))}
-                </ul>
-                <NextLink
-                  href={`/${currentLocale}/services`}
-                  className="block border-t border-border px-3 py-2.5 font-mono text-xs text-secondary transition-colors hover:text-primary"
-                >
-                  {t.services} →
-                </NextLink>
-              </div>
-            </details>
-
-            <NextLink href={`/${currentLocale}/articles`} className="rounded-lg px-3 py-2 transition-colors hover:bg-muted">
-              {t.articles}
-            </NextLink>
-            <NextLink href={`/${currentLocale}/actualites`} className="rounded-lg px-3 py-2 transition-colors hover:bg-muted">
-              {t.news}
-            </NextLink>
-            <NextLink
-              href={`/${currentLocale}/contact`}
-              className="ms-1 rounded-lg bg-primary px-3.5 py-2 text-primary-foreground transition-colors hover:bg-primary/85"
-            >
-              {t.contact}
-            </NextLink>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher locale={currentLocale} label={t.switcherLabel} />
-            <MobileNav
-              locale={currentLocale}
-              entries={mobileEntries}
-              services={serviceEntries}
-              servicesLabel={t.services}
-              menuLabel={t.menuLabel}
-              closeLabel={t.closeMenu}
-            />
-          </div>
+          {/* SiteNav reads usePathname(), which under Cache Components is a
+              dynamic read on routes that are not statically enumerable
+              (articles/tag/[tag] has no generateStaticParams). The boundary is
+              scoped to the nav on purpose: it must not sit above {children},
+              or the article/news pages' redirect()/notFound() would degrade to
+              a client-side meta-refresh — see the note at the top of this file.
+              The fallback is the same bar with nothing highlighted yet. */}
+          <Suspense fallback={<SiteNavBar {...navProps} pathname={null} />}>
+            <SiteNav {...navProps} />
+          </Suspense>
         </div>
       </header>
 

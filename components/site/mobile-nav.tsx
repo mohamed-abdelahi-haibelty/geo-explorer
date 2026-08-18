@@ -4,6 +4,7 @@ import { useState } from "react";
 import NextLink from "next/link";
 import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
+import { isNavActive } from "@/lib/nav-active";
 import { cn } from "@/lib/utils";
 import type { LocaleCode } from "@/lib/validation/locale";
 
@@ -20,6 +21,8 @@ export function MobileNav({
   servicesLabel,
   menuLabel,
   closeLabel,
+  pathname,
+  homeHref,
 }: {
   locale: LocaleCode;
   entries: NavEntry[];
@@ -27,6 +30,10 @@ export function MobileNav({
   servicesLabel: string;
   menuLabel: string;
   closeLabel: string;
+  /** Current URL, supplied by SiteNav — this component is never the one that
+      reads it, so it stays usable outside a Suspense boundary. */
+  pathname: string | null;
+  homeHref: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -42,35 +49,49 @@ export function MobileNav({
         <SheetTitle className="sr-only">{menuLabel}</SheetTitle>
         <SheetDescription className="sr-only">{closeLabel}</SheetDescription>
         <nav className="flex flex-col gap-1 px-5 py-6 font-heading text-lg">
-          {entries.map((entry, index) => (
-            <NextLink
-              key={entry.href}
-              href={entry.href}
-              onClick={() => setOpen(false)}
-              className="flex items-baseline gap-3 rounded-lg px-2 py-2.5 text-foreground transition-colors hover:bg-muted"
-            >
-              <span className="font-mono text-xs text-muted-foreground tabular-nums">{String(index + 1).padStart(2, "0")}</span>
-              {entry.label}
-            </NextLink>
-          ))}
+          {entries.map((entry, index) => {
+            const active = isNavActive(pathname, entry.href, entry.href === homeHref);
+            return (
+              <NextLink
+                key={entry.href}
+                href={entry.href}
+                onClick={() => setOpen(false)}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex items-baseline gap-3 rounded-lg px-2 py-2.5 transition-colors",
+                  active ? "bg-muted font-semibold text-foreground" : "text-foreground hover:bg-muted",
+                )}
+              >
+                <span className="font-mono text-xs text-muted-foreground tabular-nums">{String(index + 1).padStart(2, "0")}</span>
+                {entry.label}
+              </NextLink>
+            );
+          })}
         </nav>
         {services.length > 0 && (
           <div className="border-t border-border px-5 py-5">
             <p className="mb-2 font-mono text-xs tracking-wide text-muted-foreground uppercase">{servicesLabel}</p>
             <ul className="flex flex-col gap-0.5">
-              {services.map((service) => (
-                <li key={service.href}>
-                  <NextLink
-                    href={service.href}
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      "block rounded-lg px-2 py-2 text-sm text-foreground/85 transition-colors hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    {service.label}
-                  </NextLink>
-                </li>
-              ))}
+              {services.map((service) => {
+                const active = isNavActive(pathname, service.href);
+                return (
+                  <li key={service.href}>
+                    <NextLink
+                      href={service.href}
+                      onClick={() => setOpen(false)}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "block rounded-lg px-2 py-2 text-sm transition-colors",
+                        active
+                          ? "bg-muted font-medium text-foreground"
+                          : "text-foreground/85 hover:bg-muted hover:text-foreground",
+                      )}
+                    >
+                      {service.label}
+                    </NextLink>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
