@@ -172,7 +172,13 @@ export function AuthorFormDialog({ author }: { author?: AuthorWithPhoto }) {
                 ))}
               </TabsList>
               {LOCALES.map((locale) => (
-                <TabsContent key={locale} value={locale} className="flex flex-col gap-3 pt-2">
+                // keepMounted: Base UI unmounts an inactive panel by default,
+                // which took these uncontrolled inputs' typed values with it —
+                // switching FR→EN lost the FR text, and submitting from the EN
+                // tab sent no `*_fr` field at all, so localizedFromFormData()
+                // read fr as empty and wrote the whole title/bio back as unset,
+                // wiping every locale at once.
+                <TabsContent keepMounted key={locale} value={locale} className="flex flex-col gap-3 pt-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor={`author-title-${locale}`}>Fonction</Label>
                     <Input

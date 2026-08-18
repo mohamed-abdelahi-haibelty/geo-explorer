@@ -179,7 +179,9 @@ export function PartnerFormDialog({ partner }: { partner?: PartnerWithLogo }) {
                 ))}
               </TabsList>
               {LOCALES.map((locale) => (
-                <TabsContent key={locale} value={locale} className="pt-2">
+                // keepMounted — see the note in author-form-dialog: an
+                // unmounted panel drops its inputs from the submitted form.
+                <TabsContent keepMounted key={locale} value={locale} className="pt-2">
                   <Input
                     id={`partner-category-${locale}`}
                     name={`category_${locale}`}
