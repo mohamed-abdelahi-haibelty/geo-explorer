@@ -1,10 +1,10 @@
 import { z } from "zod";
 import type { JSONContent } from "@tiptap/core";
 import { localeSchema } from "@/lib/validation/locale";
+import { SLUG_REGEX } from "@/lib/slug";
 
 // Matches the `article_translation_slug_format` CHECK constraint
 // (prisma/migrations/20260806140100_localisation_raw_sql).
-const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 const jsonContentSchema = z.custom<JSONContent>(
   (val) => typeof val === "object" && val !== null && "type" in (val as Record<string, unknown>),
@@ -17,7 +17,7 @@ const translatableArticleFields = {
   locale: localeSchema,
   title: z.string().trim().min(3, "Le titre doit contenir au moins 3 caractères.").max(200),
   subtitle: z.string().trim().max(300).optional(),
-  slug: z.string().trim().regex(SLUG_REGEX, "Le slug ne peut contenir que des minuscules, chiffres et tirets.").optional(),
+  slug: z.string().trim().regex(SLUG_REGEX, "Le slug ne peut contenir que des lettres minuscules, des chiffres et des tirets.").optional(),
   excerpt: z.string().trim().max(320).optional(),
   contentJson: jsonContentSchema,
   metaTitle: z.string().trim().max(70).optional(),

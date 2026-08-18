@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { localizedTextSchema } from "@/lib/validation/locale";
+import { SLUG_REGEX } from "@/lib/slug";
 
 // Matches the `author_slug_format` CHECK constraint (prisma/migrations/20260801130500_raw_sql_constraints).
-const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 // title/bio are locale-keyed JSON — {fr, en?, ar?}. Optional as a
 // whole (an author can have no title/bio at all), but if present, fr is
@@ -12,7 +12,7 @@ export const authorInputSchema = z.object({
   slug: z
     .string()
     .trim()
-    .regex(SLUG_REGEX, "Le slug ne peut contenir que des minuscules, chiffres et tirets.")
+    .regex(SLUG_REGEX, "Le slug ne peut contenir que des lettres minuscules, des chiffres et des tirets.")
     .optional(),
   title: localizedTextSchema(z.string().trim().max(120)).optional(),
   bio: localizedTextSchema(z.string().trim().max(3000)).optional(),

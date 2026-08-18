@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { localizedTextSchema } from "@/lib/validation/locale";
+import { SLUG_REGEX } from "@/lib/slug";
 
 // Matches the slug-format CHECK constraints every other slugged table has
 // (prisma/migrations/20260801130500_raw_sql_constraints).
-const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 // `order` is deliberately absent — set only by reorderPartnersAction, so the
 // create/edit dialog and the list's drag reorder never race to write the
@@ -13,7 +13,7 @@ export const partnerInputSchema = z.object({
   slug: z
     .string()
     .trim()
-    .regex(SLUG_REGEX, "Le slug ne peut contenir que des minuscules, chiffres et tirets.")
+    .regex(SLUG_REGEX, "Le slug ne peut contenir que des lettres minuscules, des chiffres et des tirets.")
     .optional(),
   websiteUrl: z.url("URL invalide.").optional(),
   category: localizedTextSchema(z.string().trim().max(60)).optional(),
