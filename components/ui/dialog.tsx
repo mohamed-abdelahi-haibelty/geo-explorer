@@ -50,40 +50,46 @@ function DialogContent({
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Popup
-        data-slot="dialog-content"
-        // Capped at the viewport and scrollable: without max-h/overflow a tall
-        // form (the author dialog on a short screen) simply overflowed off both
-        // ends of the screen with its own footer — and so its submit button —
-        // unreachable, since a translate-centered fixed element scrolls with
-        // neither the page nor itself. The scroll lives on the popup rather
-        // than an inner wrapper so DialogFooter's -mx-4/-mb-4 still resolves
-        // against this element's own p-4, instead of overflowing a padding-less
-        // track and being clipped.
-        className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                size="icon-sm"
-              />
-            }
-          >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Popup>
+      {/* Base UI's own scroll container for tall dialogs, and the piece this
+          was missing. Capping the popup with max-h + overflow-y (the usual
+          shadcn/Radix workaround) does not work here: the popup is the
+          scrollport in that arrangement, and Base UI's modal scroll handling
+          is built around the Viewport instead — so a form taller than the
+          screen stayed clipped with its footer, and its submit button, out of
+          reach. Making the viewport the scrollport puts the popup in normal
+          flow inside it, so overflow scrolls the way it should.
+
+          `my-auto` on the popup rather than `items-center` here: auto margins
+          centre it while there is room and simply stop centring when there
+          isn't, whereas align-items:center pushes the top of a too-tall popup
+          above the scrollport where it can never be scrolled back into view. */}
+      <DialogPrimitive.Viewport className="fixed inset-0 z-50 flex justify-center overflow-y-auto p-4">
+        <DialogPrimitive.Popup
+          data-slot="dialog-content"
+          className={cn(
+            "relative my-auto grid w-full gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            className
+          )}
+          {...props}
+        >
+          {children}
+          {showCloseButton && (
+            <DialogPrimitive.Close
+              data-slot="dialog-close"
+              render={
+                <Button
+                  variant="ghost"
+                  className="absolute top-2 right-2"
+                  size="icon-sm"
+                />
+              }
+            >
+              <XIcon />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          )}
+        </DialogPrimitive.Popup>
+      </DialogPrimitive.Viewport>
     </DialogPortal>
   )
 }

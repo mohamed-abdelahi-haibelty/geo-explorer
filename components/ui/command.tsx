@@ -54,8 +54,12 @@ function CommandDialog({
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <DialogContent
+        // Sits high rather than centred, the usual command-palette placement.
+        // Expressed as margins because DialogContent's popup is now in normal
+        // flow inside Dialog.Viewport — the old `top-1/3 translate-y-0` relied
+        // on it being fixed and translate-centred.
         className={cn(
-          "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
+          "mt-[12vh] mb-auto overflow-hidden rounded-xl! p-0",
           className
         )}
         showCloseButton={showCloseButton}
